@@ -123,12 +123,28 @@ select vault.create_secret('<your CRON_SECRET>', 'cron_secret');
 select vault.create_secret('https://your-app.vercel.app', 'app_base_url');
 ```
 
-Check it is working:
+The secret must match `CRON_SECRET` in the Vercel environment exactly — Vault is the
+sender, the app is the receiver. A mismatch means every tick gets a 404 and the outbox
+silently stops draining.
+
+Check it is working — **but note what this does and does not tell you**:
 
 ```sql
 select status, return_message, start_time
 from cron.job_run_details order by start_time desc limit 5;
 ```
+
+`succeeded` only means the SQL function returned without error, and that includes its
+"nothing to do" path. A completely broken HTTP call still shows green here. To see whether
+the app was actually reached:
+
+```sql
+select status_code, left(content, 120) as body, created
+from net._http_response order by created desc limit 5;
+```
+
+An empty result with a non-empty queue means the call is not going out. A `308` means the
+base URL has a trailing slash — pg_net does not follow redirects.
 
 A dropped tick loses nothing — every message's state and backoff is a row in
 `message_deliveries`, so the next minute claims the same work. The queue is the source of

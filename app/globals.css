@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #12100e;
+  --muted: #6b6560;
+  --border: #e6e2dd;
+  --card: #ffffff;
+  --accent: #b4491f;
+  --accent-foreground: #ffffff;
+  --success: #1f7a4d;
+  --warning: #8a5a00;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-card: var(--card);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #12100e;
+    --foreground: #f5f2ef;
+    --muted: #a49c94;
+    --border: #2c2824;
+    --card: #1a1714;
+    --accent: #e4703f;
+    --accent-foreground: #16120f;
+    --success: #4ec08a;
+    --warning: #e0a83c;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  /* Buyers are overwhelmingly on phones; stop iOS zooming on tap and bouncing sideways. */
+  -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
+}

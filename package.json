@@ -11,7 +11,9 @@
     "seed": "node --env-file=.env.local scripts/seed.mts",
     "check:auth": "node --env-file=.env.local scripts/check-auth.mts",
     "check:datetime": "node scripts/check-datetime.mts",
-    "check:broadcast": "node --env-file=.env.local scripts/check-broadcast.mts"
+    "check:broadcast": "node --env-file=.env.local scripts/check-broadcast.mts",
+    "check:gate": "node --env-file=.env.local scripts/check-gate.mts",
+    "check": "npm run typecheck && npm run check:datetime && npm run check:auth && npm run check:broadcast && npm run check:gate"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

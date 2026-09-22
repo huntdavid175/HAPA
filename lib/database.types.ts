@@ -500,6 +500,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_in_ticket: {
+        Args: { p_lookup: string; p_staff?: string }
+        Returns: {
+          buyer_name: string
+          checked_in_at: string
+          outcome: string
+          ticket_code: string
+          tier_name: string
+        }[]
+      }
       claim_message_deliveries: {
         Args: { p_limit?: number }
         Returns: {
@@ -530,6 +540,17 @@ export type Database = {
       enqueue_broadcast: { Args: { p_broadcast_id: string }; Returns: number }
       generate_qr_token: { Args: never; Returns: string }
       generate_ticket_code: { Args: never; Returns: string }
+      lookup_tickets: {
+        Args: { p_event: string; p_query: string }
+        Returns: {
+          buyer_name: string
+          checked_in_at: string
+          status: Database["public"]["Enums"]["ticket_status"]
+          ticket_code: string
+          ticket_id: string
+          tier_name: string
+        }[]
+      }
       refresh_broadcast_counts: {
         Args: { p_broadcast_id: string }
         Returns: undefined

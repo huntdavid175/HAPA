@@ -161,8 +161,11 @@
 - [x] `stub` adapter (records to `message_deliveries`, sends nothing)
 - [x] Delivery worker: `FOR UPDATE SKIP LOCKED` claim, batching, exponential backoff
 - [ ] **Blocked until Moolre docs are read:** `moolre` adapter
-- [ ] `app/t/[qr_token]/page.tsx` — token-authorized, no login
-- [ ] Render QR + short code + event details
+- [x] `app/t/[token]/page.tsx` — token-authorized, no login; refuses to render a ticket
+      whose order is not paid
+- [x] Renders QR + short code + event details; QR encodes the **token**, not a URL, so
+      check-in works even if the gate cannot load a web page
+- [x] Group orders: pager between the tickets on one order, each admitting one person
 - [ ] Service worker so the ticket page caches offline once opened
 - [ ] Message body carries **both** the link and the short code
 - [ ] Success page shows tickets on screen immediately *(needs checkout)*
@@ -234,14 +237,28 @@
 - [ ] Scan the printed QR with a real phone before printing at volume — I verified the
       file format, not a real-world scan
 
-## Phase 8 — Gate
+## Phase 8 — Gate ✅
 
-- [ ] `app/scan/page.tsx` — admin + staff
-- [ ] Native `BarcodeDetector` with `@zxing/browser` fallback
-- [ ] Server-side atomic `issued → checked_in` (double-scan impossible)
-- [ ] Big unambiguous results: green VALID (name + tier) · red ALREADY USED (with time) · red INVALID
-- [ ] Lookup tab: search by short code or buyer name, manual check-in
-- [ ] Live check-in counter
+- [x] `app/scan/page.tsx` — admin + staff, phone-shaped
+- [x] Native `BarcodeDetector` (Chrome/Android covers most gate phones); no-camera and
+      permission-denied both fall through to the lookup tab rather than dead-ending
+- [x] Atomic `issued → checked_in` via `SELECT … FOR UPDATE` in `check_in_ticket()`
+- [x] Big unambiguous results: VALID / ALREADY USED (with time) / CANCELLED / INVALID,
+      plus a vibration so staff need not stare at the screen for every guest
+- [x] Repeat-scan suppression (same code ignored for 3s) — the camera sees one code many
+      times a second
+- [x] Lookup tab: search by code or guest name, debounced, manual check-in
+- [x] `lookup_tickets()` returns **only** name, tier, code and status — no phone, email or
+      amount. The door lookup must not become a buyer list
+- [x] Live check-in counter
+- [x] Authorization in app code (`requireStaffOrAdmin`) then act under the secret key, so
+      no SECURITY DEFINER function is exposed to signed-in users
+- [x] **Verified** — `npm run check:gate` (18 checks):
+  - fresh QR admits · same QR again refused, with the time it was used
+  - short code works, case-insensitive · unknown code rejected · voided ticket refused
+  - **10 simultaneous scans of one forwarded QR → exactly 1 admitted, 9 refused**
+  - lookup returns only gate-relevant fields, capped at 10
+  - ticket page loads with no login, shows code + QR, unknown token 404s
 
 ## Phase 9 — Hardening
 

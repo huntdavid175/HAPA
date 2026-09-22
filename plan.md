@@ -42,6 +42,15 @@
 - [ ] Real **Paystack test** keys in `.env.local` (still `sk_test_replace_me`)
 - [ ] Wire Sentry (client + server) — use `onRequestError` in `instrumentation.ts`
 - [ ] Vercel project linked, prod + preview envs with separate Supabase + Paystack test keys
+- [x] **Scheduling moved to Supabase Cron.** Vercel Hobby caps cron at once per day and
+      only guarantees the hour — unusable for an outbox. pg_cron is free, runs to the
+      minute, and lives next to the data. `vercel.json` removed (it was blocking deploy)
+- [x] `private.invoke_delivery_worker()` reads base URL + secret from Supabase Vault, so
+      neither is committed; no-ops while unset or pointing at localhost; skips the call
+      entirely when the queue is empty
+- [x] Verified: job `deliver-messages` registered, active, `* * * * *`, first run
+      succeeded in 7ms as a no-op
+- [ ] **After deploying:** set the two Vault secrets (see README → Scheduling)
 - [ ] `git init` + first commit
 
 ## Phase 1 — Schema, RLS, seed

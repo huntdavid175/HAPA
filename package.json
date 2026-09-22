@@ -13,7 +13,10 @@
     "check:datetime": "node scripts/check-datetime.mts",
     "check:broadcast": "node --env-file=.env.local scripts/check-broadcast.mts",
     "check:gate": "node --env-file=.env.local scripts/check-gate.mts",
-    "check": "npm run typecheck && npm run check:datetime && npm run check:auth && npm run check:broadcast && npm run check:gate"
+    "check": "npm run typecheck && npm run check:datetime && npm run check:phone && npm run check:auth && npm run check:broadcast && npm run check:gate && npm run check:checkout",
+    "check:checkout": "node --env-file=.env.local scripts/check-checkout.mts",
+    "check:phone": "node scripts/check-phone.mts",
+    "check:webhook": "node --env-file=.env.local scripts/check-webhook.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

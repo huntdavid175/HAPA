@@ -1,6 +1,8 @@
 import { formatEventDate, formatEventTime } from "@/lib/format";
 import { isFullyUnavailable, type EventWithTiers } from "@/lib/events";
+import { paymentsEnabled } from "@/lib/env";
 import { TierCard } from "./tier-card";
+import { TicketPicker } from "./ticket-picker";
 
 /**
  * The buyer's first screen — usually reached by scanning a QR at a poster or tapping a
@@ -9,6 +11,7 @@ import { TierCard } from "./tier-card";
 export function EventView({ event }: { event: EventWithTiers }) {
   const soldOut = isFullyUnavailable(event);
   const salesClosed = event.status === "sales_closed";
+  const canBuy = !soldOut && !salesClosed && event.tiers.length > 0;
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
@@ -54,7 +57,22 @@ export function EventView({ event }: { event: EventWithTiers }) {
 
         {event.tiers.length === 0 ? (
           <Notice>No ticket types have been set up for this event yet.</Notice>
+        ) : canBuy && paymentsEnabled() ? (
+          <div className="mt-4">
+            <TicketPicker
+              eventId={event.id}
+              tiers={event.tiers.map((tier) => ({
+                id: tier.id,
+                name: tier.name,
+                description: tier.description,
+                pricePesewas: tier.price_pesewas,
+                available: tier.available,
+                unavailableReason: tier.unavailableReason,
+              }))}
+            />
+          </div>
         ) : (
+          // Read-only listing: either nothing can be bought, or payment is not configured.
           <ul className="mt-4 space-y-3">
             {event.tiers.map((tier) => (
               <TierCard key={tier.id} tier={tier} />
@@ -63,11 +81,8 @@ export function EventView({ event }: { event: EventWithTiers }) {
         )}
       </section>
 
-      {/*
-        Checkout is deliberately absent: payments are deferred until Paystack Ghana
-        verification completes. Saying so plainly beats a button that fails.
-      */}
-      {!soldOut && !salesClosed && event.tiers.length > 0 ? (
+      {/* Saying so plainly beats a Pay button that fails. */}
+      {canBuy && !paymentsEnabled() ? (
         <section className="mt-8 rounded-xl border border-dashed border-border p-4 sm:p-5">
           <h2 className="text-base font-semibold">Buying isn&rsquo;t open yet</h2>
           <p className="mt-1 text-sm text-muted">

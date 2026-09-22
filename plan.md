@@ -39,9 +39,11 @@
 - [ ] Create Supabase project — preview/staging *(needs your account)*
 - [x] Real Supabase keys in `.env.local` (`sb_publishable_…` / `sb_secret_…` — the legacy
       anon / service_role JWTs are deprecated end of 2026 and `lib/env.ts` rejects them)
-- [ ] Real **Paystack test** keys in `.env.local` (still `sk_test_replace_me`)
+- [ ] Real **Paystack test** keys in `.env.local` — note: test keys do **not** require
+      business verification, so this is not blocked. Only going live is
 - [ ] Wire Sentry (client + server) — use `onRequestError` in `instrumentation.ts`
-- [ ] Vercel project linked, prod + preview envs with separate Supabase + Paystack test keys
+- [x] Production deployed at https://hapa-xi.vercel.app
+- [ ] Preview/staging env with its own Supabase project + Paystack test keys
 - [x] **Scheduling moved to Supabase Cron.** Vercel Hobby caps cron at once per day and
       only guarantees the hour — unusable for an outbox. pg_cron is free, runs to the
       minute, and lives next to the data. `vercel.json` removed (it was blocking deploy)
@@ -50,8 +52,8 @@
       entirely when the queue is empty
 - [x] Verified: job `deliver-messages` registered, active, `* * * * *`, first run
       succeeded in 7ms as a no-op
-- [ ] **After deploying:** set the two Vault secrets (see README → Scheduling)
-- [ ] `git init` + first commit
+- [x] Vault secrets set; delivery verified end to end against production (200, queue drained)
+- [x] `git init` + pushed to github.com/huntdavid175/HAPA (public; history scanned for secrets)
 
 ## Phase 1 — Schema, RLS, seed
 
@@ -103,11 +105,8 @@
 - [x] ~~Enable leaked password protection~~ — **not possible: Pro plan only.** Accepted
       limitation; the advisor WARN will persist. Low real risk here because signup is
       disabled and both accounts were admin-created with generated 20-char passwords
-- [ ] Compensating controls instead (all free, same Auth → Email panel):
-  - [ ] Minimum password length 6 → **12**
-  - [ ] Password requirements → **lowercase, uppercase, digits and symbols**
-  - [ ] **Secure password change** on (re-auth required within 24h)
-  - [ ] **Require current password when updating** on
+- [x] Compensating controls applied instead (min length, character requirements, secure
+      password change, current password required on update)
   - Both matter for door staff signing in on shared phones at the gate
 
 ## Phase 2 — Public event page ✅
@@ -128,38 +127,42 @@
   - live hold (pending order) consumes stock → "Sold out"
   - expired hold releases stock again **with no cleanup job run**
 
-## Phase 3 — Checkout + inventory holds ⚠️ must not be wrong
-> ⏸ **Deferred by decision** — payments postponed until Paystack Ghana verification.
-> `lib/env.ts` makes the Paystack keys optional; `requirePaystack()` throws if any
-> checkout path runs without them. Risk carried: the two money-critical phases now land
-> closest to the event date.
+## Phase 3 — Checkout + inventory holds ✅ (live keys still needed)
+> Built and tested in full. Paystack **test** keys turn out not to require business
+> verification, so only going live is still blocked.
 
-- [ ] Postgres function `reserve_tickets(...)` using `SELECT ... FOR UPDATE` on tier rows
-- [ ] Availability = capacity − issued − live holds
-- [ ] Hold created on checkout start with `hold_expires_at` (10 min)
-- [ ] Checkout form: name, phone, email + validation
-- [ ] Phone normalization to E.164 (+233), accepting local `0XX`
-- [ ] `lib/paystack.ts` → `POST /transaction/initialize`
-      (amount in **pesewas**, `currency: 'GHS'`, `channels: ['mobile_money','card']`, own reference, callback_url)
-- [ ] Abuse guard: cap concurrent holds per IP and per phone number
-- [ ] `/order/[reference]` status page — polls while MoMo confirms (60–120s normal)
-- [ ] Retry disabled while `pending` (reduces double-payment)
-- [ ] Cron: sweep expired holds back into availability
+- [x] `reserve_tickets()` — `FOR UPDATE` on tier rows, **locked in id order** so two
+      concurrent multi-tier checkouts cannot deadlock
+- [x] Availability recomputed **inside** the lock, never trusted from the page read
+- [x] 10-minute hold on checkout start
+- [x] Ticket picker with quantity steppers + checkout form
+- [x] `lib/phone.ts` — E.164 (+233), accepts `024…`, `+233…`, `233…`, spaces, dashes,
+      parens; rejects foreign numbers rather than failing later at send time
+- [x] `lib/paystack.ts` → `transaction/initialize`, pesewas, GHS, mobile_money + card
+- [x] Abuse guard: max 3 live holds per phone **or** per hashed IP (raw IP never stored)
+- [x] `/order/[reference]` — polls every 5s, verifies for fast feedback, issues nothing
+- [x] **No retry button while pending** — the top cause of double payment
+- [x] Paystack failure releases the hold immediately instead of stranding stock 10 minutes
+- [x] `expire_stale_holds()` on pg_cron every 5 min, with a 15-min grace so it cannot
+      race a slow mobile-money webhook
 
-## Phase 4 — Webhook + ticket issuance ⚠️ must not be wrong
-> ⏸ **Deferred with Phase 3.**
+## Phase 4 — Webhook + ticket issuance ✅ (live keys still needed)
 
-- [ ] `app/api/webhooks/paystack/route.ts` with `export const runtime = 'nodejs'`
-- [ ] `await req.text()` — verify **before** parsing
-- [ ] HMAC-SHA512 of raw body vs `x-paystack-signature`, compared with `timingSafeEqual`
-- [ ] Insert into `webhook_events`; unique violation → already seen → 200 and stop
-- [ ] On `charge.success`: call `GET /transaction/verify/:reference`, confirm status **and**
-      amount against our order (never trust the payload amount)
-- [ ] One transaction: mark order paid → create one `ticket` per admission (unique `code` +
-      `qr_token`) → enqueue `message_deliveries`
-- [ ] Return 200 fast; sending happens in the worker
-- [ ] Redirect callback also verifies (for fast UX) but does **not** issue tickets
-- [ ] Register webhook URL in the Paystack dashboard
+- [x] `app/api/webhooks/paystack/route.ts`, `runtime = 'nodejs'`
+- [x] `await request.text()` — signature verified **before** any parsing
+- [x] HMAC-SHA512 vs `x-paystack-signature`, `timingSafeEqual`
+- [x] `webhook_events` insert; unique violation → already seen → 200 and stop
+- [x] `charge.success` re-verifies with Paystack; **amount and currency checked against
+      our order**, never the payload's own figures
+- [x] `issue_tickets_for_order()` — idempotent in the database, so a replay cannot hand
+      out a second set even if the route runs twice
+- [x] Ticket message queued once per **order** (not per ticket), carrying the link **and**
+      the short code
+- [x] Returns 200 fast; sending is the worker's job
+- [x] Redirect callback verifies for UX but issues nothing
+- [x] Late payment after stock ran out → money acknowledged, order flagged
+      `needs_refund` with a reason, rather than silently swallowed
+- [ ] Register the webhook URL in the Paystack dashboard *(needs your account)*
 
 ## Phase 5 — Ticket page + delivery
 
@@ -313,3 +316,21 @@
 - Moolre API contract unverified — cost and endpoints unknown until the docs are read
 - Late webhook after hold expiry can take money with no ticket left → manual resolution
 - MoMo latency (60–120s) causes buyer retries and double-payment
+
+
+---
+
+## Verified in this build
+
+| Suite | Checks | Covers |
+|---|---|---|
+| `check:datetime` | 24 | venue-time ⇄ UTC, DST, half-hour offsets |
+| `check:phone` | 22 | every way a Ghanaian types their number |
+| `check:auth` | 16 | role split; door staff locked out of every admin route |
+| `check:broadcast` | 13 | audience fan-out, idempotency, worker drain |
+| `check:gate` | 18 | **10 concurrent scans of one QR → 1 admitted** |
+| `check:checkout` | 21 | **10 buyers racing for 5 tickets → exactly 5 sold** |
+| `check:webhook` | 12 | signature, idempotency, malformed payloads |
+
+Not covered without live Paystack test keys: `transaction/initialize` and
+`transaction/verify`. Everything either side of those two calls is checked.

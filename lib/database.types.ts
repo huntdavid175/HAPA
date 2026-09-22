@@ -261,9 +261,12 @@ export type Database = {
           event_id: string
           hold_expires_at: string
           id: string
+          ip_hash: string | null
+          needs_refund: boolean
           paid_at: string | null
           paystack_channel: string | null
           paystack_reference: string
+          refund_reason: string | null
           status: Database["public"]["Enums"]["order_status"]
           total_pesewas: number
           updated_at: string
@@ -276,9 +279,12 @@ export type Database = {
           event_id: string
           hold_expires_at: string
           id?: string
+          ip_hash?: string | null
+          needs_refund?: boolean
           paid_at?: string | null
           paystack_channel?: string | null
           paystack_reference: string
+          refund_reason?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           total_pesewas: number
           updated_at?: string
@@ -291,9 +297,12 @@ export type Database = {
           event_id?: string
           hold_expires_at?: string
           id?: string
+          ip_hash?: string | null
+          needs_refund?: boolean
           paid_at?: string | null
           paystack_channel?: string | null
           paystack_reference?: string
+          refund_reason?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           total_pesewas?: number
           updated_at?: string
@@ -538,8 +547,19 @@ export type Database = {
         }
       }
       enqueue_broadcast: { Args: { p_broadcast_id: string }; Returns: number }
+      expire_stale_holds: {
+        Args: { p_grace_minutes?: number }
+        Returns: number
+      }
       generate_qr_token: { Args: never; Returns: string }
       generate_ticket_code: { Args: never; Returns: string }
+      issue_tickets_for_order: {
+        Args: { p_channel?: string; p_order_id: string }
+        Returns: {
+          issued: number
+          shortfall: number
+        }[]
+      }
       lookup_tickets: {
         Args: { p_event: string; p_query: string }
         Returns: {
@@ -554,6 +574,22 @@ export type Database = {
       refresh_broadcast_counts: {
         Args: { p_broadcast_id: string }
         Returns: undefined
+      }
+      reserve_tickets: {
+        Args: {
+          p_buyer_email: string
+          p_buyer_name: string
+          p_buyer_phone: string
+          p_event_id: string
+          p_hold_minutes?: number
+          p_ip_hash?: string
+          p_items: Json
+          p_reference: string
+        }
+        Returns: {
+          order_id: string
+          total_pesewas: number
+        }[]
       }
       tier_availability: {
         Args: { p_event_id: string }

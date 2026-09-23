@@ -4,7 +4,8 @@ import Link from "next/link";
 
 import { getTicketByToken } from "@/lib/tickets";
 import { qrSvg } from "@/lib/share";
-import { formatEventDate, formatEventTime } from "@/lib/format";
+import { formatEventDateRange, formatEventTime } from "@/lib/format";
+import { TicketActions } from "@/app/_components/ticket-actions";
 
 export const metadata: Metadata = {
   title: "Your ticket",
@@ -17,8 +18,14 @@ export const dynamic = "force-dynamic";
 /**
  * The buyer's ticket. Reached from the link sent over WhatsApp/SMS — no sign-in.
  *
- * Designed for a phone held up at a gate in the dark: the QR is the largest thing on the
- * page, and the short code sits right under it in case the scanner will not cooperate.
+ * Shaped like the thing it replaces: a stub carrying the event and the facts, a
+ * perforation, then the half that gets scanned. That is not decoration — the tear tells
+ * someone holding up a phone where the machine-readable part starts, and door staff
+ * recognise the shape from a metre away.
+ *
+ * Designed for a phone held up at a gate in the dark: the pass stays paper-light whatever
+ * the device prefers (see `.theme-paper`), the QR is the largest thing on it, and the
+ * short code sits right beside it in case the scanner will not cooperate.
  */
 export default async function TicketPage({ params }: PageProps<"/t/[token]">) {
   const { token } = await params;
@@ -32,97 +39,219 @@ export default async function TicketPage({ params }: PageProps<"/t/[token]">) {
   const voided = ticket.status === "void";
   const used = ticket.status === "checked_in";
   const position = ticket.siblingTokens.indexOf(ticket.qrToken) + 1;
+  const ofMany = ticket.siblingTokens.length > 1;
+  const title = titleClass(ticket.eventName);
 
   return (
-    <main className="mx-auto w-full max-w-md px-4 py-6">
-      <header className="text-center">
-        <h1 className="text-xl font-bold">{ticket.eventName}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {formatEventDate(ticket.eventStartsAt, ticket.eventTimezone)} ·{" "}
-          {formatEventTime(ticket.eventStartsAt, ticket.eventTimezone)}
-        </p>
-        {ticket.eventVenue ? (
-          <p className="text-sm text-muted-foreground">{ticket.eventVenue}</p>
-        ) : null}
-      </header>
+    <main className="theme-night print-sheet min-h-dvh bg-background px-4 py-8 text-foreground">
+      {/* The pass itself is plain HTML and needs nothing. Only the buttons under it do,
+          so those are hidden rather than left sitting there doing nothing. */}
+      <noscript>
+        <style>{`.js-only{display:none!important}`}</style>
+      </noscript>
 
-      {voided ? (
-        <p className="mt-5 rounded-xl border border-destructive/50 bg-card p-4 text-center text-sm">
-          <strong className="text-destructive">This ticket has been cancelled.</strong> It will
-          not be accepted at the door. Contact the organizer if you think that is wrong.
+      <div className="mx-auto w-full max-w-sm">
+        <p className="print-hide mb-5 text-center text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+          Your ticket
         </p>
-      ) : used ? (
-        <p className="mt-5 rounded-xl border border-warning/50 bg-card p-4 text-center text-sm">
-          <strong className="text-warning">Already checked in</strong>
-          {ticket.checkedInAt
-            ? ` at ${formatEventTime(ticket.checkedInAt, ticket.eventTimezone)}`
-            : ""}
-          .
-        </p>
-      ) : null}
 
-      <section
-        className={`mt-5 rounded-2xl bg-white p-5 ${voided ? "opacity-40" : ""}`}
-        aria-label="Ticket QR code"
-      >
-        <div className="[&>svg]:h-auto [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: svg }} />
-        <p className="mt-4 text-center font-mono text-2xl font-bold tracking-wider text-black">
-          {ticket.code}
-        </p>
-        <p className="mt-1 text-center text-xs text-neutral-500">
-          Show this code if the scanner does not work
-        </p>
-      </section>
-
-      <dl className="mt-5 space-y-2 text-sm">
-        <div className="flex justify-between gap-4">
-          <dt className="text-muted-foreground">Name</dt>
-          <dd className="font-medium">{ticket.buyerName}</dd>
-        </div>
-        <div className="flex justify-between gap-4">
-          <dt className="text-muted-foreground">Ticket type</dt>
-          <dd className="font-medium">{ticket.tierName}</dd>
-        </div>
-        {ticket.siblingTokens.length > 1 ? (
-          <div className="flex justify-between gap-4">
-            <dt className="text-muted-foreground">Ticket</dt>
-            <dd className="font-medium">
-              {position} of {ticket.siblingTokens.length}
-            </dd>
-          </div>
-        ) : null}
-      </dl>
-
-      {ticket.siblingTokens.length > 1 ? (
-        <section className="mt-6">
-          <h2 className="text-sm font-medium">Other tickets on this order</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Each one admits a single person. Send the others to whoever is coming with you —
-            they can arrive separately.
+        {voided ? (
+          <p className="mb-4 rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-center text-sm">
+            <strong className="font-semibold text-destructive">
+              This ticket has been cancelled.
+            </strong>{" "}
+            It will not be accepted at the door. Contact the organizer if you think that is
+            wrong.
           </p>
-          <ul className="mt-3 flex flex-wrap gap-2">
-            {ticket.siblingTokens.map((sibling, index) => (
-              <li key={sibling}>
-                <Link
-                  href={`/t/${sibling}`}
-                  aria-current={sibling === ticket.qrToken ? "page" : undefined}
-                  className={`inline-block rounded-lg border px-3 py-2 text-sm ${
-                    sibling === ticket.qrToken
-                      ? "border-destructive font-semibold"
-                      : "border-border text-muted-foreground"
-                  }`}
-                >
-                  {index + 1}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+        ) : used ? (
+          <p className="mb-4 rounded-2xl border border-warning/40 bg-warning/10 p-4 text-center text-sm">
+            <strong className="font-semibold text-warning">Already checked in</strong>
+            {ticket.checkedInAt
+              ? ` at ${formatEventTime(ticket.checkedInAt, ticket.eventTimezone)}`
+              : ""}
+            . One scan per ticket — this one has been used.
+          </p>
+        ) : null}
 
-      <p className="mt-8 text-center text-xs text-muted-foreground">
-        Keep this link. It is your ticket — anyone with it can use it.
-      </p>
+        <article className={`ticket-pass ${voided ? "opacity-50" : ""}`}>
+          {/* ---- The stub: what the event is --------------------------------------- */}
+          <div className="theme-paper rounded-t-[1.75rem] bg-card px-5 pt-5 pb-6 text-card-foreground">
+            <div className="flex items-start gap-4">
+              {/* `cover_image` is a free-text URL an admin pasted, so it could point
+                  anywhere. That rules out `next/image`, which refuses a host missing from
+                  `remotePatterns` and would turn a typo into a 500 on the one page a buyer
+                  needs at the door. */}
+              {ticket.eventCoverImage ? (
+                /* eslint-disable-next-line @next/next/no-img-element -- see the note above */
+                <img
+                  src={ticket.eventCoverImage}
+                  // Decorative: the event name is the <h1> right beside it.
+                  alt=""
+                  aria-hidden
+                  className="size-24 shrink-0 rounded-2xl bg-muted object-cover"
+                />
+              ) : null}
+
+              <div className="min-w-0 flex-1 pt-0.5">
+                <h1 className={`text-balance break-words ${title.name}`}>{ticket.eventName}</h1>
+                {ticket.eventVenue ? (
+                  <p className={`mt-1.5 leading-snug font-semibold text-muted-foreground ${title.venue}`}>
+                    {ticket.eventVenue}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+
+            <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-4">
+              <Fact label="Date">
+                {formatEventDateRange(
+                  ticket.eventStartsAt,
+                  ticket.eventEndsAt,
+                  ticket.eventTimezone,
+                )}
+              </Fact>
+
+              <Fact label="Doors open">
+                {formatEventTime(ticket.eventStartsAt, ticket.eventTimezone)}
+              </Fact>
+
+              {/* Only when the organiser actually set an end — inventing one would put a
+                  time on a ticket that nobody committed to. */}
+              {ticket.eventEndsAt ? (
+                <Fact label="Doors close">
+                  {formatEventTime(ticket.eventEndsAt, ticket.eventTimezone)}
+                </Fact>
+              ) : null}
+
+              <Fact label="Admits">
+                {ofMany ? `${position} of ${ticket.siblingTokens.length}` : "1 person"}
+              </Fact>
+
+              <div className="col-span-2">
+                <Fact label="Email">
+                  <span className="break-all">{ticket.buyerEmail}</span>
+                </Fact>
+              </div>
+            </dl>
+          </div>
+
+          {/* ---- The tear ---------------------------------------------------------- */}
+          {/* No horizontal padding: the perforation has to reach both edges so the
+              notches can be punched out of them. */}
+          <div className="theme-paper bg-muted">
+            <div className="ticket-perf" />
+          </div>
+
+          {/* ---- The half that gets scanned ---------------------------------------- */}
+          <section
+            className="theme-paper flex items-center gap-4 rounded-b-[1.75rem] bg-muted px-5 py-6 text-foreground"
+            aria-label="Ticket QR code"
+          >
+            {/* White under the QR whatever else the pass does: scanners want dark modules
+                on a light quiet zone, and the margin is part of the code. */}
+            <div className="w-36 shrink-0 rounded-2xl bg-white p-2">
+              <div
+                className="[&>svg]:h-auto [&>svg]:w-full"
+                dangerouslySetInnerHTML={{ __html: svg }}
+              />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p className="text-[1.375rem] leading-[1.1] font-bold break-words">
+                {ticket.buyerName}
+              </p>
+              <p className="mt-3 text-[0.65rem] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+                Code
+              </p>
+              <p className="font-mono text-xl font-bold tracking-wider">{ticket.code}</p>
+              <p className="mt-1 text-xs leading-snug text-muted-foreground">
+                Read this out if the scanner does not work
+              </p>
+            </div>
+
+            {/* The tier printed down the edge, the way a wristband colour is the first
+                thing a steward looks for. The organiser's own words — nothing derived.
+                Run to the card's edge so it reads as a tab rather than a stray pill. */}
+            <span className="-mr-5 flex w-7 shrink-0 items-center justify-center self-stretch rounded-l-lg bg-primary py-3 text-primary-foreground">
+              <span className="max-h-44 rotate-180 overflow-hidden text-xs font-bold tracking-wide whitespace-nowrap [writing-mode:vertical-rl]">
+                {ticket.tierName}
+              </span>
+            </span>
+          </section>
+        </article>
+
+        <TicketActions eventName={ticket.eventName} />
+
+        {ofMany ? (
+          <section className="print-hide mt-8">
+            <h2 className="text-sm font-semibold">Other tickets on this order</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Each one admits a single person. Send the others to whoever is coming with you —
+              they can arrive separately.
+            </p>
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {ticket.siblingTokens.map((sibling, index) => {
+                const current = sibling === ticket.qrToken;
+                return (
+                  <li key={sibling}>
+                    <Link
+                      href={`/t/${sibling}`}
+                      aria-current={current ? "page" : undefined}
+                      className={`flex size-11 items-center justify-center rounded-xl border text-sm font-semibold transition ${
+                        current
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"
+                      }`}
+                    >
+                      {index + 1}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ) : null}
+
+        <p className="print-hide mt-8 text-center text-xs text-muted-foreground">
+          Keep this link. It is your ticket — anyone with it can use it.
+        </p>
+      </div>
     </main>
+  );
+}
+
+/**
+ * The title sits in a ~14rem column beside the artwork, so it cannot be one size.
+ * "Afrochella" wants to fill it; the ten-word award-show name this project was built
+ * around would run to seven lines and push the QR off a phone screen. The venue steps
+ * down with it, keeping the pair looking deliberate rather than merely shrunk.
+ */
+function titleClass(name: string): { name: string; venue: string } {
+  const n = name.trim().length;
+
+  if (n <= 24) {
+    return {
+      name: "text-[1.625rem] leading-[1.05] font-extrabold tracking-[-0.02em] [font-stretch:105%]",
+      venue: "text-lg",
+    };
+  }
+  if (n <= 55) {
+    return {
+      name: "text-xl leading-[1.1] font-extrabold tracking-[-0.015em]",
+      venue: "text-base",
+    };
+  }
+  return { name: "text-[1.0625rem] leading-[1.2] font-bold", venue: "text-sm" };
+}
+
+/** One labelled fact on the stub. Label above value, so a long value wraps under it. */
+function Fact({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[0.65rem] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+        {label}
+      </dt>
+      <dd className="mt-0.5 text-sm font-semibold">{children}</dd>
+    </div>
   );
 }

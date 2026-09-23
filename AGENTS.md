@@ -26,6 +26,31 @@ Single-event ticketing for Ghana. Buyers never sign up; a ticket is an unguessab
   layouts do not wrap route handlers, so a CSV or QR route must re-check the role itself.
 - Times are stored UTC and displayed in the **venue's** timezone. `lib/datetime.ts` is the
   single conversion point; forms post `YYYY-MM-DDTHH:mm` and let the server convert.
+- **Marketing claims are the organiser's, never the code's.** `ticket_tiers.benefits`,
+  `.highlight` and `.badge` are authored in the admin form and nothing derives them.
+  "Most popular" computed from sales would be a lie on an event that has sold nothing,
+  and hard-coding the middle tier breaks the moment a fourth is added. The same rule
+  binds agents: do not write benefit or badge copy onto a **published** event to see how
+  it looks — that is live text in front of buyers. Use a draft event.
+
+## Environment and deployment
+
+- **`NEXT_PUBLIC_SITE_URL` is load-bearing in three places**: the Paystack return URL
+  (`checkoutCallbackUrl`), the ticket links sent over WhatsApp/SMS
+  (`lib/messaging/ticket-message.ts`), and share links and QR codes (`lib/share.ts`).
+  Wrong value means buyers get dead links, not a visible error.
+- It is `NEXT_PUBLIC_*`, so it is **inlined at build time**. Changing it in Vercel does
+  nothing until you redeploy.
+- Boot validation only checks the URL's *shape*. `http://localhost:3000` is structurally
+  valid, so a production deployment carrying the `.env.example` default passes every
+  check and then redirects paying buyers to their own machine. It shipped that way once.
+- Store `PAYSTACK_SECRET_KEY` as a Vercel **Sensitive** variable, not a plain one — plain
+  values stay readable in the dashboard and via `vercel env pull`. Set the live key as
+  Sensitive from the start so it never sits in readable storage.
+- Rotating that key has an ordering trap: it is also the webhook HMAC-SHA512 signing key
+  (`lib/paystack.ts`). Paystack signs with the new key the instant you generate it, so
+  every signature fails until Vercel is updated **and redeployed**. Update `.env.local`
+  too, or `check:paystack` and `check:webhook` fail.
 
 ## Verify by running it, not by reading it
 
@@ -41,6 +66,25 @@ Single-event ticketing for Ghana. Buyers never sign up; a ticket is an unguessab
   script. Without it the route 500s and every assertion fails confusingly.
 - Seeding temporary accounts and deleting them afterwards is the established pattern; the
   Supabase project is production, so clean up.
+
+## The public buy flow
+
+Pricing cards at the foot of the page, a drawer for the cart, and a rail (desktop) or bar
+(mobile) that follows the scroll.
+
+- **One source of quantity truth**: the context in `app/_components/cart.tsx`. The cards,
+  the rail/bar and the drawer all read it. Adding from a card opens the drawer with the
+  tier already in it.
+- `bumpQty` derives from the previous state, never from a captured value. Two fast `+`
+  taps used to land as one.
+- With JS off the CTA is an `<a href="#tickets">` to the cards; the stepper and the
+  drawer are `js-only`. The page still sells.
+- The rail and bar hide while the cards are in view and return once something is in the
+  cart — `use-in-view.ts`, an IntersectionObserver.
+- Card heights are equalised by `items-stretch` on the grid. The highlighted tier lifts
+  with `lg:-mt-4 lg:mb-4`; **padding would make it genuinely taller** and desynchronise
+  the row. Heights are deliberately *not* equalised in the single-column mobile layout —
+  each card is its own grid row there, and forcing it only adds dead space.
 
 ## Styling
 
@@ -84,4 +128,13 @@ preview shows — use `richTextToPlain`, never the raw markup.
 
 - `MESSAGING_PROVIDER=stub` sends nothing. The Moolre adapter is deliberately
   unimplemented until their API contract is confirmed — no messages reach a buyer today.
-- Paystack live keys, the webhook URL registration, and a staging project.
+- **The Paystack webhook is not registered.** Nothing has ever reached
+  `/api/webhooks/paystack`. Every ticket issued so far came from the callback page's
+  inline verify, which contradicts the settled decision above — a buyer who closes the
+  tab before mobile money confirms currently gets nothing.
+- **`NEXT_PUBLIC_SITE_URL` on Vercel still points at localhost.** Until it is corrected
+  and redeployed, the Paystack return URL and every share QR generated on production are
+  dead links.
+- Paystack live keys and a staging project.
+- `app/scan/scanner.tsx` has the repo's only lint errors (`react-hooks/set-state-in-effect`).
+- Staff, broadcasts and the share kit have not been moved to shadcn.

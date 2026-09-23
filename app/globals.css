@@ -289,6 +289,133 @@
   bottom: -0.4375rem;
 }
 
+/**
+ * The buyer's ticket is a piece of paper, so it stays light in both colour schemes.
+ *
+ * Not a hard-coded set of greys sprinkled through the markup: the whole token set is
+ * redefined here, so everything inside keeps using `bg-card`, `text-muted-foreground`
+ * and the rest, and the pass reads the same at a dark gate as on a bright bus.
+ *
+ * The real constraint is the QR. Scanners want dark modules on a light quiet zone, and
+ * a ticket that inverted around it would put a white square in the middle of a dark
+ * card — the same "hole" problem `.theme-night` avoids for the buy button. Making the
+ * whole pass paper is the honest version of that.
+ */
+.theme-paper {
+  --background: #ffffff;
+  --foreground: #16111b;
+  --card: #ffffff;
+  --card-foreground: #16111b;
+  --popover: #ffffff;
+  --popover-foreground: #16111b;
+  --border: #e4e0ea;
+  --input: #e4e0ea;
+  --ring: #6b74e8;
+
+  /* The lavender band the QR sits on, and the labels above each fact. */
+  --muted: #f1eef7;
+  --muted-foreground: #6f6880;
+  --accent: #f1eef7;
+  --accent-foreground: #16111b;
+  --secondary: #f1eef7;
+  --secondary-foreground: #16111b;
+
+  --primary: #d79922;
+  --primary-foreground: #1a1206;
+  --destructive: #c0392b;
+  --success: #1f7a4d;
+  --warning: #8a5a00;
+  --highlight: #6b74e8;
+  --highlight-foreground: #ffffff;
+  --surface: #f1eef7;
+
+  /* Carried through even though the pass holds no buy button today. A half-declared
+     palette is the bug that produced dark cards with near-black text; a scope either
+     defines the set or it does not exist. */
+  --cta: #b37d15;
+  --cta-foreground: #ffffff;
+
+  /* Controls drawn by the browser inside the pass — never the dark set. */
+  color-scheme: light;
+}
+
+/**
+ * The tear across the middle of the pass.
+ *
+ * `.tear` punches its notches out of the *page*, which is right when the perforation
+ * runs edge to edge. This one runs across a card that floats on the page, so the holes
+ * have to be filled with whatever is behind the card. `--ticket-notch` is set outside
+ * the `.theme-paper` subtree and resolves there, because a `var()` inside a custom
+ * property is substituted where it is declared — inside the pass, `--background` is
+ * already paper white and would fill the notches with the card itself.
+ *
+ * The two halves are rounded individually rather than clipped by an `overflow-hidden`
+ * parent: clipping would slice the notches in half.
+ */
+.ticket-pass {
+  /* Declared out here, not inside the pass: this resolves against the page's background,
+     which is what has to show through the holes. */
+  --ticket-notch: var(--background);
+}
+
+.ticket-perf {
+  position: relative;
+  height: 0;
+  border-top: 2px dashed var(--border);
+}
+
+.ticket-perf::before,
+.ticket-perf::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  background: var(--ticket-notch);
+  transform: translateY(-50%);
+}
+
+.ticket-perf::before {
+  left: -0.75rem;
+}
+
+.ticket-perf::after {
+  right: -0.75rem;
+}
+
+/**
+ * Saving the pass as a PDF is the browser's print dialog, so print is a real layout here
+ * rather than an afterthought. The page furniture goes, the pass stays, and the tints
+ * are forced to print — without `print-color-adjust` the QR's quiet zone can come out as
+ * whatever the printer feels like.
+ */
+@media print {
+  .print-hide {
+    display: none !important;
+  }
+
+  /* The pass carries its own palette, but the page around it is still `.theme-night`,
+     whose near-white body text would print as nothing. Anything left on the sheet — the
+     cancelled and checked-in notices — needs ink. */
+  .print-sheet {
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #16111b !important;
+  }
+
+  .ticket-pass {
+    --ticket-notch: #ffffff;
+    break-inside: avoid;
+  }
+
+  .ticket-pass,
+  .ticket-pass * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
 body {
   /* Buyers are overwhelmingly on phones; stop iOS zooming on tap and bouncing sideways. */
   -webkit-text-size-adjust: 100%;

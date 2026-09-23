@@ -96,19 +96,19 @@ export function OrderStatus({
               <li key={ticket.token}>
                 <Link
                   href={`/t/${ticket.token}`}
-                  className="stub grid grid-cols-[minmax(0,1fr)_var(--stub-width)] border border-border bg-card transition hover:border-cta"
+                  className="stub grid grid-cols-[minmax(0,1fr)_var(--stub-width)] rounded-2xl bg-cta text-cta-foreground transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-cta focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
                 >
                   <div className="p-5">
                     <p className="text-lg leading-tight font-bold [font-stretch:105%]">
                       Ticket {index + 1}
                       {tickets.length > 1 ? ` of ${tickets.length}` : ""}
                     </p>
-                    <p className="mt-1.5 text-sm text-muted-foreground">
-                      Tap to open the QR
-                    </p>
+                    {/* Not `--muted-foreground`: that is a dim mauve tuned for the dark
+                        page, and it disappears on the ochre. */}
+                    <p className="mt-1.5 text-sm text-cta-foreground/80">Tap to open the QR</p>
                   </div>
 
-                  <div className="flex flex-col items-center justify-center border-l-2 border-dashed border-border p-3 text-center">
+                  <div className="flex flex-col items-center justify-center border-l-2 border-dashed border-cta-foreground/30 p-3 text-center">
                     <p className="font-mono text-sm font-bold">{ticket.code}</p>
                   </div>
                 </Link>

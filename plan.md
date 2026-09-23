@@ -412,6 +412,25 @@
       persists, spans 3 days, and the database rejects it reversed. Driven in the browser:
       clicking 7 then 9 fills both hidden fields and marks start/middle/end
 
+- [x] **Description is a WYSIWYG editor** (Tiptap) with a short toolbar: bold, italic,
+      strike, heading, lists, quote, link, undo/redo, built from shadcn `Toggle`s
+- [x] **Sanitised on the way in**, not at render: the save action cleans the markup
+      against a small allowlist, so the database never holds anything the public page has
+      to be careful with. No images, iframes, styles, ids or classes
+- [x] Links are forced to `target="_blank" rel="noopener noreferrer nofollow"`, and only
+      http/https/mailto/tel survive — `javascript:` and `data:` are the obvious smuggling
+      routes for a script
+- [x] `<meta name="description">` reads a plain-text flattening, not the markup. It is
+      what a WhatsApp link preview shows, and raw tags there would appear in every
+      shared link
+- [x] Descriptions written before the editor existed are wrapped into paragraphs on read.
+      Tiptap parses its `content` as HTML, so without that the blank lines in the existing
+      description collapsed into one run-on block — and saving would have persisted it
+- [x] **`npm run check:richtext` (24 checks)**: script tags, `img onerror`, `svg onload`,
+      inline handlers, `javascript:`/`data:`/protocol-relative hrefs, iframes, style tags
+      and credential-harvesting forms are all stripped, while headings, lists, bold and
+      https links survive
+
 ## Phase 9 — Hardening
 
 - [x] `/admin/failures` — the failed half of the outbox, ticket deliveries sorted above

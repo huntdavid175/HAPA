@@ -3,30 +3,34 @@
 import { useState } from "react";
 
 /**
- * Description with the mockup's fade-out and centred "Show More".
+ * The event description, as rich text.
  *
- * The full text is always in the DOM and the collapse is a line clamp, so search engines
- * and screen readers get the whole description either way — and the toggle only appears
- * when there is genuinely more to read, rather than teasing a two-line paragraph.
+ * `html` is already sanitised — it is cleaned in the save action against a small
+ * allowlist before it reaches the database, so nothing unsafe can be stored in the first
+ * place. See lib/rich-text.ts.
+ *
+ * The collapse is a line clamp rather than a truncation, so the whole description is in
+ * the DOM either way and search engines and screen readers get all of it. The toggle only
+ * appears when there is genuinely more to read.
  */
-export function AboutText({ text, clampAfter = 5 }: { text: string; clampAfter?: number }) {
+export function AboutText({ html, clampAfter = 5 }: { html: string; clampAfter?: number }) {
   const [expanded, setExpanded] = useState(false);
 
-  // Rough, deliberately generous: better to skip the toggle on a borderline paragraph
-  // than to show one that reveals nothing when tapped.
-  const mightOverflow = text.length > clampAfter * 62;
+  // Rough, and measured against the text rather than the markup — tags are invisible to
+  // a reader, so counting them would show a toggle that reveals nothing.
+  const textLength = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().length;
+  const mightOverflow = textLength > clampAfter * 62;
   const collapsed = mightOverflow && !expanded;
 
   return (
     <div>
       <div className="relative">
-        <p
-          className={`text-sm leading-relaxed text-muted-foreground sm:text-base ${
+        <div
+          className={`prose-event text-sm leading-relaxed text-muted-foreground sm:text-base ${
             collapsed ? "line-clamp-5" : ""
           }`}
-        >
-          {text}
-        </p>
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
 
         {collapsed ? (
           <div

@@ -289,6 +289,78 @@
   bottom: -0.4375rem;
 }
 
+body {
+  /* Buyers are overwhelmingly on phones; stop iOS zooming on tap and bouncing sideways. */
+  -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+  /* Base UI's drawer overlay is absolutely positioned; without a positioned body it
+     fails to cover the viewport on iOS Safari once the page has been scrolled.
+     https://base-ui.com/react/overview/quick-start#ios-26-safari */
+  position: relative;
+}
+
+/**
+ * The event description, rendered from the sanitised markup the admin editor produces.
+ *
+ * Scoped rather than a global element reset: these rules should only reach the one block
+ * on the page that holds user-authored content.
+ */
+.prose-event > :first-child {
+  margin-top: 0;
+}
+
+.prose-event p,
+.prose-event ul,
+.prose-event ol,
+.prose-event blockquote {
+  margin-top: 0.75em;
+}
+
+.prose-event h3,
+.prose-event h4 {
+  margin-top: 1.25em;
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.prose-event h3 {
+  font-size: 1.05em;
+}
+
+.prose-event ul,
+.prose-event ol {
+  padding-left: 1.25em;
+}
+
+.prose-event ul {
+  list-style: disc;
+}
+
+.prose-event ol {
+  list-style: decimal;
+}
+
+.prose-event li {
+  margin-top: 0.25em;
+}
+
+.prose-event blockquote {
+  padding-left: 0.85em;
+  border-left: 2px solid var(--border);
+}
+
+.prose-event a {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.prose-event strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
 /**
  * With no JavaScript the sheet cannot open, so its trigger is hidden and the tiers that
  * live inside it are rendered inline instead. The page never becomes a dead end.

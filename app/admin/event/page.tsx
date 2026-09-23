@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { createClient } from "@/lib/supabase/server";
+import { ensureRichText } from "@/lib/rich-text";
 import { formatPesewas } from "@/lib/format";
 import { utcIsoToLocalInput } from "@/lib/datetime";
 import {
@@ -40,7 +41,7 @@ export default async function EventAdminPage() {
         id: event.id,
         name: event.name,
         slug: event.slug,
-        description: event.description,
+        description: ensureRichText(event.description),
         venue: event.venue,
         coverImage: event.cover_image ?? "",
         startsAtLocal: utcIsoToLocalInput(event.starts_at, event.timezone),

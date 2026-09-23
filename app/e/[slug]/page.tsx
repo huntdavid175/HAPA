@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+
+import { richTextToPlain, truncatePlain } from "@/lib/rich-text";
 import { notFound } from "next/navigation";
 
 import { getEventBySlug } from "@/lib/events";
@@ -22,7 +24,9 @@ export async function generateMetadata(
   if (!event) return { title: "Event not found" };
   return {
     title: event.name,
-    description: event.description || `Tickets for ${event.name}`,
+    description:
+      truncatePlain(richTextToPlain(event.description)) ||
+      `Tickets for ${event.name}`,
   };
 }
 

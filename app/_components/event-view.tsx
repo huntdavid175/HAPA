@@ -5,6 +5,7 @@ import {
 } from "@/lib/format";
 import { isFullyUnavailable, type EventWithTiers } from "@/lib/events";
 import { paymentsEnabled } from "@/lib/env";
+import { ensureRichText } from "@/lib/rich-text";
 import { TierCard } from "./tier-card";
 import { TicketPicker } from "./ticket-picker";
 import { EventHero } from "./event-hero";
@@ -82,7 +83,7 @@ export function EventView({ event }: { event: EventWithTiers }) {
 
               {event.description ? (
                 <div className="mt-7 max-w-[62ch]">
-                  <AboutText text={event.description} />
+                  <AboutText html={ensureRichText(event.description)} />
                 </div>
               ) : null}
             </header>

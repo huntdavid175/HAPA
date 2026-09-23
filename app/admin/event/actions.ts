@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requireAdmin } from "@/lib/auth";
+import { sanitizeRichText, isRichTextEmpty } from "@/lib/rich-text";
 import { createClient } from "@/lib/supabase/server";
 import { localInputToUtcIso } from "@/lib/datetime";
 
@@ -20,7 +21,7 @@ const eventSchema = z.object({
     .min(1, "Give the event a URL slug")
     .max(80)
     .regex(slugPattern, "Slug can only use lowercase letters, numbers and hyphens"),
-  description: z.string().trim().max(4000).default(""),
+  description: z.string().trim().max(20000).default(""),
   venue: z.string().trim().max(300).default(""),
   // Validated as a URL so a typo shows up here rather than as a broken hero on the
   // buyer's first screen. Empty is allowed and means "no cover" — the page has a
@@ -56,8 +57,12 @@ export async function saveEvent(
     return { error: parsed.error.issues[0]?.message ?? "Check the form", ok: null };
   }
 
-  const { id, name, slug, description, venue, coverImage, startsAt, endsAt, timezone } =
-    parsed.data;
+  const { id, name, slug, venue, coverImage, startsAt, endsAt, timezone } = parsed.data;
+
+  // Sanitised on the way in, so the stored value is already safe to render and the
+  // public page does not depend on remembering to clean it every time.
+  const cleaned = sanitizeRichText(parsed.data.description);
+  const description = isRichTextEmpty(cleaned) ? "" : cleaned;
   const supabase = await createClient();
 
   let startsAtIso: string;

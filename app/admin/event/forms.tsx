@@ -13,9 +13,9 @@ import {
   FieldLegend,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { ScheduleFields } from "./schedule-fields";
+import { DescriptionEditor } from "./description-editor";
 import {
   saveEvent,
   saveTier,
@@ -111,13 +111,12 @@ export function EventForm({ event }: { event: EventFormValues }) {
             </div>
 
             <Field>
-              <FieldLabel htmlFor="description">Description</FieldLabel>
-              <Textarea
-                id="description"
-                name="description"
-                rows={5}
-                defaultValue={event.description}
-              />
+              <FieldLabel>Description</FieldLabel>
+              <DescriptionEditor name="description" defaultValue={event.description} />
+              <FieldDescription>
+                Headings, lists and links are kept. Everything else is stripped before it
+                is saved.
+              </FieldDescription>
             </Field>
 
             <Field>

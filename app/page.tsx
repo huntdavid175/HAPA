@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { richTextToPlain, truncatePlain } from "@/lib/rich-text";
+
 import { getPublishedEvent } from "@/lib/events";
 import { EventView } from "./_components/event-view";
 
@@ -17,7 +19,9 @@ export async function generateMetadata(): Promise<Metadata> {
   if (!event) return { title: "Tickets" };
   return {
     title: event.name,
-    description: event.description || `Tickets for ${event.name}`,
+    description:
+      truncatePlain(richTextToPlain(event.description)) ||
+      `Tickets for ${event.name}`,
   };
 }
 

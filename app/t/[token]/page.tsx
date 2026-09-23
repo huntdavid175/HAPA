@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 
 import { getTicketByToken } from "@/lib/tickets";
 import { qrSvg } from "@/lib/share";
@@ -38,8 +37,7 @@ export default async function TicketPage({ params }: PageProps<"/t/[token]">) {
 
   const voided = ticket.status === "void";
   const used = ticket.status === "checked_in";
-  const position = ticket.siblingTokens.indexOf(ticket.qrToken) + 1;
-  const ofMany = ticket.siblingTokens.length > 1;
+  const ofMany = ticket.ticketCount > 1;
   const title = titleClass(ticket.eventName);
 
   return (
@@ -124,7 +122,7 @@ export default async function TicketPage({ params }: PageProps<"/t/[token]">) {
               ) : null}
 
               <Fact label="Admits">
-                {ofMany ? `${position} of ${ticket.siblingTokens.length}` : "1 person"}
+                {ofMany ? `${ticket.position} of ${ticket.ticketCount}` : "1 person"}
               </Fact>
 
               <div className="col-span-2">
@@ -182,38 +180,16 @@ export default async function TicketPage({ params }: PageProps<"/t/[token]">) {
 
         <TicketActions eventName={ticket.eventName} />
 
-        {ofMany ? (
-          <section className="print-hide mt-8">
-            <h2 className="text-sm font-semibold">Other tickets on this order</h2>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Each one admits a single person. Send the others to whoever is coming with you —
-              they can arrive separately.
-            </p>
-            <ul className="mt-3 flex flex-wrap gap-2">
-              {ticket.siblingTokens.map((sibling, index) => {
-                const current = sibling === ticket.qrToken;
-                return (
-                  <li key={sibling}>
-                    <Link
-                      href={`/t/${sibling}`}
-                      aria-current={current ? "page" : undefined}
-                      className={`flex size-11 items-center justify-center rounded-xl border text-sm font-semibold transition ${
-                        current
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"
-                      }`}
-                    >
-                      {index + 1}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        ) : null}
+        {/* No link to the rest of the order, deliberately. This page is reached by
+            holding the token, and the token is the whole of the authorization — a list
+            of the siblings would mean forwarding one ticket to a friend also handed
+            them everyone else's. The buyer reaches the full set from the order page
+            they were sent, which is a receipt rather than something you pass on. */}
 
         <p className="print-hide mt-8 text-center text-xs text-muted-foreground">
-          Keep this link. It is your ticket — anyone with it can use it.
+          {ofMany
+            ? "This link is one ticket. Anyone holding it can use it, so send each person their own."
+            : "Keep this link. It is your ticket — anyone with it can use it."}
         </p>
       </div>
     </main>

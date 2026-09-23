@@ -17,8 +17,15 @@ export type PublicTicket = {
   eventTimezone: string;
   /** Artwork for the ticket's stub. A free-text URL an admin pasted, so it may 404. */
   eventCoverImage: string | null;
-  /** Other tickets on the same order, so a group can page between them. */
-  siblingTokens: string[];
+  /**
+   * Where this ticket falls in its order — "2 of 4" — and how many there were.
+   *
+   * Deliberately a position and a count, never the other tickets' tokens. The token IS
+   * the authorization, so a page that listed its siblings would hand the whole order to
+   * whoever the buyer forwarded one ticket to.
+   */
+  position: number;
+  ticketCount: number;
 };
 
 /**
@@ -68,11 +75,16 @@ export async function getTicketByToken(token: string): Promise<PublicTicket | nu
     cover_image: string | null;
   };
 
+  // Ordered by code so the numbering is stable across every ticket on the order: each
+  // one has to agree about which is "2 of 4". The tokens are read here and go no
+  // further — only the position and the count are returned.
   const { data: siblings } = await db
     .from("tickets")
     .select("qr_token")
     .eq("order_id", data.order_id)
     .order("code");
+
+  const tokens = (siblings ?? []).map((s) => s.qr_token);
 
   return {
     code: data.code,
@@ -88,6 +100,7 @@ export async function getTicketByToken(token: string): Promise<PublicTicket | nu
     eventEndsAt: event.ends_at,
     eventTimezone: event.timezone,
     eventCoverImage: event.cover_image,
-    siblingTokens: (siblings ?? []).map((s) => s.qr_token),
+    position: tokens.indexOf(data.qr_token) + 1,
+    ticketCount: tokens.length,
   };
 }

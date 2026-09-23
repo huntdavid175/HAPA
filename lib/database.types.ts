@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -11,6 +11,31 @@ export type Database = {
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -344,10 +369,13 @@ export type Database = {
       ticket_tiers: {
         Row: {
           active: boolean
+          badge: string | null
+          benefits: string[]
           capacity: number
           created_at: string
           description: string
           event_id: string
+          highlight: boolean
           id: string
           name: string
           position: number
@@ -358,10 +386,13 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          badge?: string | null
+          benefits?: string[]
           capacity: number
           created_at?: string
           description?: string
           event_id: string
+          highlight?: boolean
           id?: string
           name: string
           position?: number
@@ -372,10 +403,13 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          badge?: string | null
+          benefits?: string[]
           capacity?: number
           created_at?: string
           description?: string
           event_id?: string
+          highlight?: boolean
           id?: string
           name?: string
           position?: number
@@ -735,6 +769,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       broadcast_status: ["draft", "queued", "sending", "sent", "failed"],

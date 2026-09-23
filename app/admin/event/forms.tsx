@@ -12,7 +12,9 @@ import {
   FieldSet,
   FieldLegend,
 } from "@/components/ui/field";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { ScheduleFields } from "./schedule-fields";
 import { DescriptionEditor } from "./description-editor";
@@ -196,6 +198,10 @@ export type TierFormValues = {
   id?: string;
   name: string;
   description: string;
+  /** One benefit per line, which is how the textarea presents them. */
+  benefits: string;
+  highlight: boolean;
+  badge: string;
   priceGhs: string;
   capacity: string;
 };
@@ -261,7 +267,56 @@ export function TierForm({
             id={`desc-${tier?.id ?? "new"}`}
             name="description"
             defaultValue={tier?.description ?? ""}
+            placeholder="One line — what this ticket is"
           />
+        </Field>
+
+        <Field>
+          <FieldLabel htmlFor={`benefits-${tier?.id ?? "new"}`}>
+            What you get
+          </FieldLabel>
+          <Textarea
+            id={`benefits-${tier?.id ?? "new"}`}
+            name="benefits"
+            rows={4}
+            defaultValue={tier?.benefits ?? ""}
+            placeholder={"All three days\nReserved seating\nWelcome drink"}
+          />
+          <FieldDescription>
+            One per line, up to 8. These are what a buyer compares between tiers, so keep
+            them short and answer the same question in each one.
+          </FieldDescription>
+        </Field>
+
+        <Field orientation="horizontal">
+          <Checkbox
+            id={`highlight-${tier?.id ?? "new"}`}
+            name="highlight"
+            defaultChecked={tier?.highlight ?? false}
+          />
+          <FieldLabel
+            htmlFor={`highlight-${tier?.id ?? "new"}`}
+            className="font-normal"
+          >
+            Make this tier stand out in the pricing cards
+          </FieldLabel>
+        </Field>
+
+        <Field>
+          <FieldLabel htmlFor={`badge-${tier?.id ?? "new"}`}>
+            Badge <span className="text-muted-foreground">(optional)</span>
+          </FieldLabel>
+          <Input
+            id={`badge-${tier?.id ?? "new"}`}
+            name="badge"
+            maxLength={24}
+            placeholder="Most popular"
+            defaultValue={tier?.badge ?? ""}
+          />
+          <FieldDescription>
+            Shown on the highlighted card. Your words, so only claim what is true — leave
+            it blank to highlight the card without saying anything.
+          </FieldDescription>
         </Field>
 
         <Field orientation="horizontal">

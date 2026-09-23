@@ -126,6 +126,9 @@ export default async function EventAdminPage() {
                     id: tier.id,
                     name: tier.name,
                     description: tier.description,
+                    benefits: (tier.benefits ?? []).join("\n"),
+                    highlight: tier.highlight ?? false,
+                    badge: tier.badge ?? "",
                     priceGhs: (tier.price_pesewas / 100).toFixed(2),
                     capacity: String(tier.capacity),
                   }}

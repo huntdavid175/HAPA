@@ -33,6 +33,16 @@ async function cleanup() {
   await db.from("orders").delete().like("paystack_reference", `${TAG}%`);
 }
 
+/**
+ * Tickets reference the tier and the event with ON DELETE RESTRICT, so the orders go
+ * first — deleting those cascades their tickets away — then the tier, then the event.
+ */
+async function removeScratchData() {
+  await cleanup();
+  await db.from("ticket_tiers").delete().like("name", `${TAG}%`);
+  await db.from("events").delete().like("slug", `${TAG}%`);
+}
+
 async function reserve(
   eventId: string, tierId: string, qty: number, ref: string,
   phone = "+233201000000", ip: string | null = null,
@@ -53,13 +63,41 @@ async function main() {
   const { data: event } = await db
     .from("events").select("id").eq("slug", "sample-event").single();
   if (!event) throw new Error("Run: npm run seed");
-  const eventId = event.id;
 
-  const { data: tier } = await db
-    .from("ticket_tiers").select("id, capacity").eq("event_id", eventId)
-    .eq("name", "VIP").single();
-  const tierId = tier!.id;
-  const originalCapacity = tier!.capacity;
+  // A draft event and tier of its own, created here and removed at the end.
+  //
+  // This used to borrow the live "VIP" tier and edit its capacity, restoring it on the
+  // last line. Anything that threw in between left the published event selling a single
+  // VIP ticket — which is exactly what happened once. `reserve_tickets` only requires the
+  // tier to be active, not the event to be published, so the whole run can happen on a
+  // draft nobody can see. Real sales can no longer skew the arithmetic either.
+  const { data: testEvent, error: eventError } = await db
+    .from("events")
+    .insert({
+      name: `${TAG} scratch event`,
+      slug: `${TAG}-${Date.now()}`,
+      venue: "Nowhere",
+      starts_at: new Date(Date.now() + 86_400_000).toISOString(),
+    })
+    .select("id")
+    .single();
+  if (eventError) throw new Error(`could not create the test event: ${eventError.message}`);
+  const eventId = testEvent.id;
+
+  const { data: tier, error: tierError } = await db
+    .from("ticket_tiers")
+    .insert({
+      event_id: eventId,
+      name: `${TAG}-tier`,
+      description: "Temporary, created by check:checkout",
+      price_pesewas: 1000,
+      capacity: 5,
+      position: 0,
+    })
+    .select("id")
+    .single();
+  if (tierError) throw new Error(`could not create the test tier: ${tierError.message}`);
+  const tierId = tier.id;
 
   await cleanup();
 
@@ -163,8 +201,8 @@ async function main() {
   check("and flagged for refund rather than silently swallowed", flagged!.needs_refund, true);
   check("with a reason recorded", (flagged!.refund_reason ?? "").length > 0, true);
 
-  await cleanup();
-  await db.from("ticket_tiers").update({ capacity: originalCapacity }).eq("id", tierId);
+  // Nothing to restore any more — the event and tier were ours, so they just go.
+  await removeScratchData();
 
   console.log(failures === 0 ? "\nAll checks passed." : `\n${failures} check(s) FAILED.`);
   process.exit(failures === 0 ? 0 : 1);

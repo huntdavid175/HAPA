@@ -1,20 +1,12 @@
-import {
-  formatEventDateRange,
-  formatEventTime,
-  formatPesewas,
-} from "@/lib/format";
+import { formatEventDateRange, formatEventTime } from "@/lib/format";
 import { isFullyUnavailable, type EventWithTiers } from "@/lib/events";
 import { paymentsEnabled } from "@/lib/env";
 import { ensureRichText } from "@/lib/rich-text";
-import { TierCard } from "./tier-card";
-import { TicketPicker } from "./ticket-picker";
 import { EventHero } from "./event-hero";
 import { AboutText } from "./about-text";
-import {
-  TicketSheetProvider,
-  TicketSheet,
-  OpenTicketsButton,
-} from "./ticket-drawer";
+import { CartProvider, type CartTier } from "./cart";
+import { BuyRail, BuyBar, TicketPlansSection } from "./buy-panel";
+import { TicketDrawer } from "./ticket-drawer";
 
 /**
  * The buyer's first screen — usually reached by scanning a QR on a poster or tapping a
@@ -44,16 +36,20 @@ export function EventView({ event }: { event: EventWithTiers }) {
         ? "No ticket types have been set up for this event yet."
         : null;
 
-  const tierList = (
-    <ul className="space-y-7">
-      {event.tiers.map((tier) => (
-        <TierCard key={tier.id} tier={tier} />
-      ))}
-    </ul>
-  );
+  const cartTiers: CartTier[] = event.tiers.map((tier) => ({
+    id: tier.id,
+    name: tier.name,
+    description: tier.description,
+    benefits: tier.benefits ?? [],
+    pricePesewas: tier.price_pesewas,
+    available: tier.available,
+    unavailableReason: tier.unavailableReason,
+    highlight: tier.highlight ?? false,
+    badge: tier.badge,
+  }));
 
   return (
-    <TicketSheetProvider>
+    <CartProvider tiers={cartTiers}>
       <main className="theme-night min-h-dvh bg-background pb-28 text-foreground lg:pb-20">
         {/* A trigger that cannot open anything is worse than no trigger, so the sheet's
           buttons are hidden without JavaScript and the tiers render inline instead. */}
@@ -107,80 +103,37 @@ export function EventView({ event }: { event: EventWithTiers }) {
                 ) : null}
               </dl>
 
-              {/* Desktop's price + buy pair. The phone gets the fixed bar at the bottom. */}
-              <div className="mt-7 hidden lg:block">
-                <PriceLabel cheapest={cheapest} />
-                <div className="mt-4">
-                  <Cta
-                    checkoutOpen={checkoutOpen}
-                    soldOut={soldOut}
-                    salesClosed={salesClosed}
-                    block
-                  />
-                </div>
-              </div>
+              <BuyRail
+                checkoutOpen={checkoutOpen}
+                soldOut={soldOut}
+                salesClosed={salesClosed}
+                cheapest={cheapest}
+              />
             </div>
           </div>
 
-          {/* Hidden unless JavaScript is off, where it is the only way to see prices. */}
-          <section className="noscript-tiers mt-12 hidden">
-            <h2 className="text-sm font-semibold text-muted-foreground">
-              Tickets
-            </h2>
-            <div className="mt-5">
-              {unavailableNotice ? (
-                <Notice>{unavailableNotice}</Notice>
-              ) : (
-                tierList
-              )}
-            </div>
-          </section>
+          <TicketPlansSection
+            checkoutOpen={checkoutOpen}
+            soldOut={soldOut}
+            salesClosed={salesClosed}
+          />
         </div>
 
-        <TicketSheet
-          title={unavailableNotice ? "Tickets" : "Choose your ticket"}
-          description={
-            unavailableNotice
-              ? "Why tickets are not available."
-              : "Pick how many of each you want. Nothing is charged until you pay."
-          }
-        >
-          {unavailableNotice ? (
-            <p className="pb-2 text-sm text-muted-foreground">
-              {unavailableNotice}
-            </p>
-          ) : (
-            /* The picker renders whether or not Paystack is configured. Working out what
-             the night costs is useful on its own, and a list you cannot touch invites
-             taps that do nothing. Only the pay step is gated. */
-            <TicketPicker
-              eventId={event.id}
-              checkoutOpen={checkoutOpen}
-              tiers={event.tiers.map((tier) => ({
-                id: tier.id,
-                name: tier.name,
-                description: tier.description,
-                pricePesewas: tier.price_pesewas,
-                available: tier.available,
-                unavailableReason: tier.unavailableReason,
-              }))}
-            />
-          )}
-        </TicketSheet>
+        <BuyBar
+          checkoutOpen={checkoutOpen}
+          soldOut={soldOut}
+          salesClosed={salesClosed}
+          cheapest={cheapest}
+        />
 
-        {/* Phones only — the desktop rail already carries the price and the button. */}
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 px-6 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md lg:hidden">
-          <div className="mx-auto flex max-w-5xl items-center justify-between gap-5">
-            <PriceLabel cheapest={cheapest} />
-            <Cta
-              checkoutOpen={checkoutOpen}
-              soldOut={soldOut}
-              salesClosed={salesClosed}
-            />
-          </div>
-        </div>
+        <TicketDrawer
+          eventId={event.id}
+          checkoutOpen={checkoutOpen}
+          unavailableNotice={unavailableNotice}
+        />
+
       </main>
-    </TicketSheetProvider>
+    </CartProvider>
   );
 }
 
@@ -211,52 +164,7 @@ function titleClass(name: string): string {
   return "text-[1.375rem] leading-[1.15] font-bold tracking-[-0.01em] sm:text-[1.625rem] lg:text-3xl";
 }
 
-function PriceLabel({ cheapest }: { cheapest: number | null }) {
-  if (cheapest === null) {
-    return <p className="text-sm text-muted-foreground">No tickets on sale</p>;
-  }
 
-  return (
-    <div className="min-w-0">
-      <p className="text-xs text-muted-foreground">From</p>
-      <p className="text-2xl leading-none font-extrabold tabular-nums [font-stretch:105%]">
-        {formatPesewas(cheapest)}
-      </p>
-    </div>
-  );
-}
-
-/** Sold out and closed are states, not actions, so they are not dressed as buttons. */
-function Cta({
-  checkoutOpen,
-  soldOut,
-  salesClosed,
-  block = false,
-}: {
-  checkoutOpen: boolean;
-  soldOut: boolean;
-  salesClosed: boolean;
-  block?: boolean;
-}) {
-  if (soldOut || salesClosed) {
-    return (
-      <p
-        className={`${
-          block ? "block w-full" : "shrink-0"
-        } border border-border px-7 py-3.5 text-center text-[0.95rem] font-semibold text-muted-foreground`}
-      >
-        {salesClosed ? "Sales closed" : "Sold out"}
-      </p>
-    );
-  }
-
-  return (
-    <OpenTicketsButton
-      label={checkoutOpen ? "Buy a ticket" : "See tickets"}
-      block={block}
-    />
-  );
-}
 
 function Fact({
   label,
@@ -275,13 +183,6 @@ function Fact({
   );
 }
 
-function Notice({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="border-l-2 border-border pl-4 text-sm text-muted-foreground">
-      {children}
-    </p>
-  );
-}
 
 function PinIcon() {
   return (

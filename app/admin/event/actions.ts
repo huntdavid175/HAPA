@@ -154,6 +154,27 @@ const tierSchema = z.object({
   eventId: z.uuid(),
   name: z.string().trim().min(1, "Give the tier a name").max(100),
   description: z.string().trim().max(500).default(""),
+  // One benefit per line in the form. Blank lines are how people separate thoughts while
+  // typing, so they are dropped rather than saved as empty bullets.
+  benefits: z
+    .string()
+    .default("")
+    .transform((raw) =>
+      raw
+        .split(/\r?\n/)
+        .map((line) => line.replace(/^[-*•]\s*/, "").trim())
+        .filter(Boolean),
+    )
+    .refine((list) => list.length <= 8, "Keep it to 8 benefits or fewer")
+    .refine(
+      (list) => list.every((line) => line.length <= 80),
+      "Each benefit should be a short line, under 80 characters",
+    ),
+  // Checkbox: absent from the form data entirely when unticked.
+  highlight: z.preprocess((v) => v === "on" || v === "true", z.boolean()),
+  // The claim is the organiser's own words, so it is free text — but it sits in a pill
+  // beside the tier name and wraps badly past a couple of words.
+  badge: z.string().trim().max(24, "Keep the badge to a couple of words").default(""),
   // Entered in cedis; stored as integer pesewas.
   priceGhs: z.coerce.number().positive("Price must be more than zero").max(100000),
   capacity: z.coerce.number().int().positive("Capacity must be at least 1").max(1000000),
@@ -170,6 +191,9 @@ export async function saveTier(
     eventId: formData.get("eventId"),
     name: formData.get("name"),
     description: formData.get("description") ?? "",
+    benefits: formData.get("benefits") ?? "",
+    highlight: formData.get("highlight") ?? false,
+    badge: formData.get("badge") ?? "",
     priceGhs: formData.get("priceGhs"),
     capacity: formData.get("capacity"),
   });
@@ -177,7 +201,8 @@ export async function saveTier(
     return { error: parsed.error.issues[0]?.message ?? "Check the tier", ok: null };
   }
 
-  const { id, eventId, name, description, priceGhs, capacity } = parsed.data;
+  const { id, eventId, name, description, benefits, highlight, badge, priceGhs, capacity } =
+    parsed.data;
 
   // Round at the boundary so 35.005 can never become a fractional pesewa.
   const pricePesewas = Math.round(priceGhs * 100);
@@ -187,6 +212,10 @@ export async function saveTier(
     event_id: eventId,
     name,
     description,
+    benefits,
+    highlight,
+    // Empty means "highlighted, but making no claim", which is a real choice.
+    badge: badge || null,
     price_pesewas: pricePesewas,
     capacity,
   };

@@ -192,7 +192,7 @@
   --popover-foreground: #f2ece4;
   --border: #2b2230;
   --input: #2b2230;
-  --ring: #f2b705;
+  --ring: #d79922;
   --surface: #1c1622;
 
   /* shadcn's semantics, not the project's old ones: `--muted` is a surface and
@@ -205,7 +205,7 @@
   --accent: #241d2b;
   --accent-foreground: #f2ece4;
   --destructive: #e4703f;
-  --primary: #f2b705;
+  --primary: #d79922;
   --primary-foreground: #1a1206;
   --secondary: #241d2b;
   --secondary-foreground: #f2ece4;
@@ -215,10 +215,10 @@
   --success: #5fcb92;
   --warning: #e0a83c;
 
-  /* The buy button, and the only saturated colour on the page. Ghana's flag gold rather
-     than a generic acid accent — it reads as sign paint, which is where the country's
-     event posters actually come from. */
-  --cta: #f2b705;
+  /* The buy button, and the only saturated colour on the page. A deeper ochre than flag
+     gold — still reads as sign paint, and dark text on it clears AA at 7.5:1 while the
+     colour itself sits at 7.6:1 against the page for borders, ticks and the focus ring. */
+  --cta: #d79922;
   --cta-foreground: #1a1206;
 
   /* Makes scrollbars and form controls inside the page render dark too. */

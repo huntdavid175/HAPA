@@ -102,22 +102,62 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/**
+ * System dark mode.
+ *
+ * Carries the *complete* token set. An earlier version of this block overrode only the
+ * handful of variables this project defined before shadcn arrived — so `--card` went
+ * dark while `--card-foreground` stayed near-black, and every card rendered with
+ * invisible text. Half a palette is worse than none.
+ *
+ * These values are shadcn's `.dark` set verbatim, plus this project's own tokens. The
+ * `.dark` class below stays for explicit opt-in; keep the two in step.
+ */
 @media (prefers-color-scheme: dark) {
   :root {
-    --muted: #a49c94;
-    --border: #2c2824;
-    --card: #1a1714;
-    --accent: #e4703f;
-    --accent-foreground: #16120f;
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.922 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.556 0 0);
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.556 0 0);
+
+    /* Project tokens shadcn does not define. */
     --success: #4ec08a;
     --warning: #e0a83c;
-
     --highlight: #8a92f2;
     --highlight-foreground: #12132b;
+    --surface: oklch(0.269 0 0);
     /* Inverted: a navy pill on a near-black page would read as a hole, not a button. */
     --cta: #f5f2ef;
     --cta-foreground: #16120f;
-    --surface: #211d19;
+
+    color-scheme: dark;
   }
 }
 

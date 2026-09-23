@@ -14,8 +14,16 @@ const BASE = process.env.CHECK_BASE_URL ?? "http://localhost:3000";
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const publishable = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
 
-const ADMIN = { email: "admin@example.com", password: process.env.CHECK_ADMIN_PASSWORD! };
-const STAFF = { email: "staff@example.com", password: process.env.CHECK_STAFF_PASSWORD! };
+// Emails are overridable so the suite can run against throwaway accounts provisioned for
+// one run, rather than requiring the seeded passwords to be kept somewhere.
+const ADMIN = {
+  email: process.env.CHECK_ADMIN_EMAIL ?? "admin@example.com",
+  password: process.env.CHECK_ADMIN_PASSWORD!,
+};
+const STAFF = {
+  email: process.env.CHECK_STAFF_EMAIL ?? "staff@example.com",
+  password: process.env.CHECK_STAFF_PASSWORD!,
+};
 
 const MAX_CHUNK = 3180;
 const projectRef = new URL(url).hostname.split(".")[0];
@@ -53,6 +61,11 @@ async function signIn(creds: { email: string; password: string }) {
   return sessionCookie(data.session);
 }
 
+// A well-formed id that matches no order. Admin should therefore reach the page and get
+// a 404 from it; door staff should never get that far. Both outcomes are assertions: a
+// redirect for admin would mean the gate is too tight, a 404 for staff too loose.
+const ABSENT_ORDER = "00000000-0000-4000-8000-000000000000";
+
 type Expect = { path: string; expect: number | "redirect"; note: string };
 
 async function probe(cookie: string | null, cases: Expect[], who: string) {
@@ -71,7 +84,7 @@ async function probe(cookie: string | null, cases: Expect[], who: string) {
 
     if (!pass) failures++;
     const detail = isRedirect ? `${res.status} -> ${location}` : String(res.status);
-    console.log(`  ${pass ? "PASS" : "FAIL"}  ${c.path.padEnd(24)} ${detail.padEnd(28)} ${c.note}`);
+    console.log(`  ${pass ? "PASS" : "FAIL"}  ${c.path.padEnd(46)} ${detail.padEnd(28)} ${c.note}`);
   }
   return failures;
 }
@@ -89,6 +102,7 @@ const main = async () => {
     { path: "/admin", expect: "redirect", note: "signed-out admin is bounced" },
     { path: "/admin/buyers", expect: "redirect", note: "signed-out buyers list is bounced" },
     { path: "/admin/buyers/export", expect: "redirect", note: "CSV route is bounced" },
+    { path: "/admin/failures", expect: "redirect", note: "signed-out failure list is bounced" },
     { path: "/scan", expect: "redirect", note: "signed-out gate is bounced" },
   ], "Signed out");
 
@@ -99,8 +113,14 @@ const main = async () => {
     { path: "/admin/event", expect: 200, note: "admin reaches event settings" },
     { path: "/admin/staff", expect: 200, note: "admin reaches staff accounts" },
     { path: "/admin/buyers/export", expect: 200, note: "admin can export CSV" },
+    { path: "/admin/failures", expect: 200, note: "admin reaches the failure list" },
+    {
+      path: `/admin/orders/${ABSENT_ORDER}`,
+      expect: 404,
+      note: "admin passes the gate on order detail (404 = no such order)",
+    },
     { path: "/scan", expect: 200, note: "admin can also work the gate" },
-  ], "Admin (admin@example.com)");
+  ], `Admin (${ADMIN.email})`);
 
   const staffCookie = await signIn(STAFF);
   failures += await probe(staffCookie, [
@@ -109,7 +129,13 @@ const main = async () => {
     { path: "/admin/buyers", expect: "redirect", note: "DOOR STAFF MUST NOT SEE BUYERS" },
     { path: "/admin/staff", expect: "redirect", note: "DOOR STAFF MUST NOT MANAGE ACCOUNTS" },
     { path: "/admin/buyers/export", expect: 404, note: "CSV route re-checks role itself" },
-  ], "Door staff (staff@example.com)");
+    { path: "/admin/failures", expect: "redirect", note: "DOOR STAFF MUST NOT SEE FAILURES" },
+    {
+      path: `/admin/orders/${ABSENT_ORDER}`,
+      expect: "redirect",
+      note: "DOOR STAFF MUST NOT SEE ORDER DETAIL",
+    },
+  ], `Door staff (${STAFF.email})`);
 
   console.log(failures === 0 ? "\nAll checks passed." : `\n${failures} check(s) FAILED.`);
   process.exit(failures === 0 ? 0 : 1);

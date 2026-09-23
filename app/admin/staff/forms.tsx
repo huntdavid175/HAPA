@@ -15,7 +15,7 @@ function Submit({ label }: { label: string }) {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground disabled:opacity-60"
+      className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
     >
       {pending ? "Creating…" : label}
     </button>
@@ -48,7 +48,7 @@ export function CreateStaffForm() {
         </div>
 
         {state.error ? (
-          <p role="alert" className="text-sm font-medium text-accent">{state.error}</p>
+          <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>
         ) : null}
 
         <Submit label="Create account" />
@@ -58,14 +58,14 @@ export function CreateStaffForm() {
         <div className="mt-5 rounded-xl border border-success/40 bg-card p-4">
           <p className="text-sm font-semibold text-success">Account created</p>
           <p className="mt-2 text-sm">
-            <span className="text-muted">Email:</span>{" "}
+            <span className="text-muted-foreground">Email:</span>{" "}
             <span className="font-mono">{state.created.email}</span>
           </p>
           <p className="mt-1 text-sm">
-            <span className="text-muted">Password:</span>{" "}
+            <span className="text-muted-foreground">Password:</span>{" "}
             <span className="font-mono break-all">{state.created.password}</span>
           </p>
-          <p className="mt-3 text-xs text-muted">
+          <p className="mt-3 text-xs text-muted-foreground">
             Copy this now — it is not stored anywhere and cannot be shown again. Send it to
             them directly, and have them sign in before event night.
           </p>
@@ -83,13 +83,13 @@ export function RemoveStaffButton({ id, name }: { id: string; name: string }) {
       <input type="hidden" name="id" value={id} />
       <button
         type="submit"
-        className="text-sm text-muted underline hover:text-foreground"
+        className="text-sm text-muted-foreground underline hover:text-foreground"
         aria-label={`Remove ${name}`}
       >
         Remove
       </button>
       {state.error ? (
-        <span role="alert" className="text-xs text-accent">{state.error}</span>
+        <span role="alert" className="text-xs text-destructive">{state.error}</span>
       ) : null}
     </form>
   );

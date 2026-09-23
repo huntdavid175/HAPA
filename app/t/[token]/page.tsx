@@ -37,18 +37,18 @@ export default async function TicketPage({ params }: PageProps<"/t/[token]">) {
     <main className="mx-auto w-full max-w-md px-4 py-6">
       <header className="text-center">
         <h1 className="text-xl font-bold">{ticket.eventName}</h1>
-        <p className="mt-1 text-sm text-muted">
+        <p className="mt-1 text-sm text-muted-foreground">
           {formatEventDate(ticket.eventStartsAt, ticket.eventTimezone)} ·{" "}
           {formatEventTime(ticket.eventStartsAt, ticket.eventTimezone)}
         </p>
         {ticket.eventVenue ? (
-          <p className="text-sm text-muted">{ticket.eventVenue}</p>
+          <p className="text-sm text-muted-foreground">{ticket.eventVenue}</p>
         ) : null}
       </header>
 
       {voided ? (
-        <p className="mt-5 rounded-xl border border-accent/50 bg-card p-4 text-center text-sm">
-          <strong className="text-accent">This ticket has been cancelled.</strong> It will
+        <p className="mt-5 rounded-xl border border-destructive/50 bg-card p-4 text-center text-sm">
+          <strong className="text-destructive">This ticket has been cancelled.</strong> It will
           not be accepted at the door. Contact the organizer if you think that is wrong.
         </p>
       ) : used ? (
@@ -76,16 +76,16 @@ export default async function TicketPage({ params }: PageProps<"/t/[token]">) {
 
       <dl className="mt-5 space-y-2 text-sm">
         <div className="flex justify-between gap-4">
-          <dt className="text-muted">Name</dt>
+          <dt className="text-muted-foreground">Name</dt>
           <dd className="font-medium">{ticket.buyerName}</dd>
         </div>
         <div className="flex justify-between gap-4">
-          <dt className="text-muted">Ticket type</dt>
+          <dt className="text-muted-foreground">Ticket type</dt>
           <dd className="font-medium">{ticket.tierName}</dd>
         </div>
         {ticket.siblingTokens.length > 1 ? (
           <div className="flex justify-between gap-4">
-            <dt className="text-muted">Ticket</dt>
+            <dt className="text-muted-foreground">Ticket</dt>
             <dd className="font-medium">
               {position} of {ticket.siblingTokens.length}
             </dd>
@@ -96,7 +96,7 @@ export default async function TicketPage({ params }: PageProps<"/t/[token]">) {
       {ticket.siblingTokens.length > 1 ? (
         <section className="mt-6">
           <h2 className="text-sm font-medium">Other tickets on this order</h2>
-          <p className="mt-1 text-xs text-muted">
+          <p className="mt-1 text-xs text-muted-foreground">
             Each one admits a single person. Send the others to whoever is coming with you —
             they can arrive separately.
           </p>
@@ -108,8 +108,8 @@ export default async function TicketPage({ params }: PageProps<"/t/[token]">) {
                   aria-current={sibling === ticket.qrToken ? "page" : undefined}
                   className={`inline-block rounded-lg border px-3 py-2 text-sm ${
                     sibling === ticket.qrToken
-                      ? "border-accent font-semibold"
-                      : "border-border text-muted"
+                      ? "border-destructive font-semibold"
+                      : "border-border text-muted-foreground"
                   }`}
                 >
                   {index + 1}
@@ -120,7 +120,7 @@ export default async function TicketPage({ params }: PageProps<"/t/[token]">) {
         </section>
       ) : null}
 
-      <p className="mt-8 text-center text-xs text-muted">
+      <p className="mt-8 text-center text-xs text-muted-foreground">
         Keep this link. It is your ticket — anyone with it can use it.
       </p>
     </main>

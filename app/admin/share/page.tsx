@@ -24,7 +24,7 @@ export default async function SharePage() {
     return (
       <main className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
         <h1 className="text-xl font-bold sm:text-2xl">Share your event</h1>
-        <p className="mt-2 text-sm text-muted">
+        <p className="mt-2 text-sm text-muted-foreground">
           Create an event first and its link and QR code will appear here.
         </p>
         <Link href="/admin/event" className="mt-4 inline-block text-sm underline">
@@ -65,7 +65,7 @@ export default async function SharePage() {
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
       <h1 className="text-xl font-bold sm:text-2xl">Share your event</h1>
-      <p className="mt-2 text-sm text-muted">
+      <p className="mt-2 text-sm text-muted-foreground">
         One link, one QR code. Both point at the same page — put the QR on posters and send
         the link in chats.
       </p>
@@ -99,7 +99,7 @@ export default async function SharePage() {
 
       <section className="mt-10">
         <h2 className="text-lg font-semibold">QR code</h2>
-        <p className="mt-1 text-sm text-muted">
+        <p className="mt-1 text-sm text-muted-foreground">
           Keep the white border when you place it in a design — a QR pressed against
           artwork often fails to scan. Test it with a phone before printing.
         </p>
@@ -125,7 +125,7 @@ export default async function SharePage() {
             >
               Download SVG (for print)
             </a>
-            <p className="max-w-[16rem] text-xs text-muted">
+            <p className="max-w-[16rem] text-xs text-muted-foreground">
               Use the SVG if a designer is laying out the poster — it stays sharp at any
               size. PNG is fine for social posts.
             </p>
@@ -135,7 +135,7 @@ export default async function SharePage() {
 
       <section className="mt-10">
         <h2 className="text-lg font-semibold">Ready-made post</h2>
-        <p className="mt-1 text-sm text-muted">
+        <p className="mt-1 text-sm text-muted-foreground">
           Paste this into a WhatsApp group, status or social post.
         </p>
         <pre className="mt-3 overflow-x-auto rounded-xl border border-border bg-card p-4 text-sm whitespace-pre-wrap">
@@ -147,7 +147,7 @@ export default async function SharePage() {
             href={whatsappHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-accent-foreground"
+            className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
           >
             Share on WhatsApp
           </a>

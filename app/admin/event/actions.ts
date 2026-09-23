@@ -22,6 +22,12 @@ const eventSchema = z.object({
     .regex(slugPattern, "Slug can only use lowercase letters, numbers and hyphens"),
   description: z.string().trim().max(4000).default(""),
   venue: z.string().trim().max(300).default(""),
+  // Validated as a URL so a typo shows up here rather than as a broken hero on the
+  // buyer's first screen. Empty is allowed and means "no cover" — the page has a
+  // gradient for that case.
+  coverImage: z
+    .union([z.literal(""), z.url("Enter a full image URL, starting http:// or https://")])
+    .default(""),
   // datetime-local gives "2026-10-22T20:00" with no zone; interpreted as venue-local.
   startsAt: z.string().min(1, "Set the date and time"),
   timezone: z.string().trim().min(1).default("Africa/Accra"),
@@ -39,6 +45,7 @@ export async function saveEvent(
     slug: formData.get("slug"),
     description: formData.get("description") ?? "",
     venue: formData.get("venue") ?? "",
+    coverImage: formData.get("coverImage") ?? "",
     startsAt: formData.get("startsAt"),
     timezone: formData.get("timezone") || "Africa/Accra",
   });
@@ -46,7 +53,8 @@ export async function saveEvent(
     return { error: parsed.error.issues[0]?.message ?? "Check the form", ok: null };
   }
 
-  const { id, name, slug, description, venue, startsAt, timezone } = parsed.data;
+  const { id, name, slug, description, venue, coverImage, startsAt, timezone } =
+    parsed.data;
   const supabase = await createClient();
 
   let startsAtIso: string;
@@ -61,6 +69,9 @@ export async function saveEvent(
     slug,
     description,
     venue,
+    // Stored as null rather than "" so `cover_image ? ... : ...` on the public page is
+    // the only check the renderer needs.
+    cover_image: coverImage || null,
     starts_at: startsAtIso,
     timezone,
   };

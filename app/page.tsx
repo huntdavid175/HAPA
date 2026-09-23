@@ -28,7 +28,7 @@ export default async function HomePage() {
     return (
       <main className="mx-auto flex w-full max-w-2xl flex-col items-start px-4 py-16 sm:px-6">
         <h1 className="text-2xl font-bold sm:text-3xl">No event on sale</h1>
-        <p className="mt-3 text-sm text-muted sm:text-base">
+        <p className="mt-3 text-sm text-muted-foreground sm:text-base">
           There is no event published right now. If you followed a link or scanned a code,
           the event may have ended or not been published yet.
         </p>

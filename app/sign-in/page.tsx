@@ -18,7 +18,7 @@ export default async function SignInPage({ searchParams }: PageProps<"/sign-in">
   return (
     <main className="mx-auto flex w-full max-w-sm flex-col px-4 py-16 sm:py-24">
       <h1 className="text-2xl font-bold">Sign in</h1>
-      <p className="mt-2 text-sm text-muted">
+      <p className="mt-2 text-sm text-muted-foreground">
         Organizer and door staff only. There is no public sign-up.
       </p>
 

@@ -15,43 +15,52 @@ function statusLabel(tier: TierWithAvailability) {
     default:
       return tier.available <= SCARCITY_THRESHOLD
         ? { text: `Only ${tier.available} left`, tone: "warning" as const }
-        : { text: "Available", tone: "success" as const };
+        : { text: "On sale", tone: "success" as const };
   }
 }
 
+/**
+ * One tier, shaped like the thing it sells.
+ *
+ * The perforation is the divider between the description and the price, so no extra rule
+ * is needed — the structure carries the meaning instead of decorating it. The seam's
+ * position lives in one CSS variable so the column and the punched notches stay aligned.
+ */
 export function TierCard({ tier }: { tier: TierWithAvailability }) {
   const unavailable = tier.unavailableReason !== null;
   const status = statusLabel(tier);
 
   return (
     <li
-      className={`rounded-xl border border-border bg-card p-4 transition-opacity sm:p-5 ${
-        unavailable ? "opacity-60" : ""
+      className={`stub grid grid-cols-[minmax(0,1fr)_var(--stub-width)] border border-border bg-card ${
+        unavailable ? "opacity-55" : ""
       }`}
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h3 className="text-base font-semibold sm:text-lg">{tier.name}</h3>
-          {tier.description ? (
-            <p className="mt-1 text-sm text-muted">{tier.description}</p>
-          ) : null}
-        </div>
-        <p className="shrink-0 text-right text-base font-semibold tabular-nums sm:text-lg">
-          {formatPesewas(tier.price_pesewas)}
+      <div className="p-5">
+        <h3 className="text-lg leading-tight font-bold [font-stretch:105%]">{tier.name}</h3>
+
+        {tier.description ? (
+          <p className="mt-1.5 text-sm text-muted-foreground">{tier.description}</p>
+        ) : null}
+
+        <p
+          className={`mt-3 text-sm font-medium ${
+            status.tone === "warning"
+              ? "text-warning"
+              : status.tone === "success"
+                ? "text-success"
+                : "text-muted-foreground"
+          }`}
+        >
+          {status.text}
         </p>
       </div>
 
-      <p
-        className={`mt-3 text-sm font-medium ${
-          status.tone === "warning"
-            ? "text-warning"
-            : status.tone === "success"
-              ? "text-success"
-              : "text-muted"
-        }`}
-      >
-        {status.text}
-      </p>
+      <div className="flex flex-col items-center justify-center border-l-2 border-dashed border-border p-3 text-center">
+        <p className="text-base leading-none font-extrabold tabular-nums">
+          {formatPesewas(tier.price_pesewas)}
+        </p>
+      </div>
     </li>
   );
 }

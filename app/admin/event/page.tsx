@@ -33,6 +33,7 @@ export default async function EventAdminPage() {
         slug: event.slug,
         description: event.description,
         venue: event.venue,
+        coverImage: event.cover_image ?? "",
         startsAtLocal: utcIsoToLocalInput(event.starts_at, event.timezone),
         timezone: event.timezone,
       }
@@ -41,6 +42,7 @@ export default async function EventAdminPage() {
         slug: "",
         description: "",
         venue: "",
+        coverImage: "",
         startsAtLocal: "",
         timezone: "Africa/Accra",
       };
@@ -76,7 +78,7 @@ export default async function EventAdminPage() {
       {event ? (
         <section className="mt-10">
           <h2 className="text-lg font-semibold">Ticket tiers</h2>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 text-sm text-muted-foreground">
             Each tier has its own price and capacity, and sells out independently.
           </p>
 
@@ -86,7 +88,7 @@ export default async function EventAdminPage() {
                 <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
                   <p className="font-medium">
                     {tier.name}{" "}
-                    <span className="text-sm text-muted">
+                    <span className="text-sm text-muted-foreground">
                       {formatPesewas(tier.price_pesewas)} · {tier.capacity} available
                     </span>
                   </p>

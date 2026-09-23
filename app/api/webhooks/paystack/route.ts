@@ -2,7 +2,7 @@ import { type NextRequest } from "next/server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyWebhookSignature, verifyTransaction } from "@/lib/paystack";
-import { clientEnv } from "@/lib/env";
+import { queueTicketDelivery } from "@/lib/messaging/ticket-message";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -148,53 +148,4 @@ async function markProcessed(
     .update({ processed_at: new Date().toISOString(), error: error ?? null })
     .eq("provider", "paystack")
     .eq("provider_event_id", providerEventId);
-}
-
-/**
- * Queue the buyer's ticket message.
- *
- * One message per order, not per ticket: someone who bought four tickets is one person.
- * The body carries the link **and** the short code, because at the gate the buyer may
- * have no data to open the link — that code is what lets staff check them in anyway.
- */
-async function queueTicketDelivery(
-  db: ReturnType<typeof createAdminClient>,
-  orderId: string,
-) {
-  const { data: order } = await db
-    .from("orders")
-    .select("id, buyer_name, buyer_phone, buyer_email, events(name)")
-    .eq("id", orderId)
-    .single();
-  if (!order) return;
-
-  const { data: tickets } = await db
-    .from("tickets")
-    .select("code, qr_token")
-    .eq("order_id", orderId)
-    .order("code");
-  if (!tickets?.length) return;
-
-  // Already queued (replayed webhook) — do not send twice.
-  const { count: existing } = await db
-    .from("message_deliveries")
-    .select("id", { count: "exact", head: true })
-    .eq("order_id", orderId)
-    .is("broadcast_id", null);
-  if (existing && existing > 0) return;
-
-  const site = clientEnv().NEXT_PUBLIC_SITE_URL;
-  const eventName = (order.events as unknown as { name: string } | null)?.name ?? "the event";
-  const link = `${site}/t/${tickets[0].qr_token}`;
-  const codes = tickets.map((t) => t.code).join(", ");
-
-  const body =
-    tickets.length === 1
-      ? `Your ticket for ${eventName}.\nCode: ${codes}\n${link}\n\nShow the QR or the code at the gate.`
-      : `Your ${tickets.length} tickets for ${eventName}.\nCodes: ${codes}\n${link}\n\nOpen the link to see all of them. Show the QR or a code at the gate.`;
-
-  await db.from("message_deliveries").insert([
-    { order_id: orderId, channel: "sms", recipient: order.buyer_phone, body },
-    { order_id: orderId, channel: "whatsapp", recipient: order.buyer_phone, body },
-  ]);
 }

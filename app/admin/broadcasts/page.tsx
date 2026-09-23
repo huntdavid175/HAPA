@@ -23,7 +23,7 @@ export default async function BroadcastsPage() {
     return (
       <main className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
         <h1 className="text-xl font-bold sm:text-2xl">Messages</h1>
-        <p className="mt-2 text-sm text-muted">Create an event before messaging anyone.</p>
+        <p className="mt-2 text-sm text-muted-foreground">Create an event before messaging anyone.</p>
         <Link href="/admin/event" className="mt-4 inline-block text-sm underline">
           Set up your event
         </Link>
@@ -56,7 +56,7 @@ export default async function BroadcastsPage() {
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
       <h1 className="text-xl font-bold sm:text-2xl">Messages</h1>
-      <p className="mt-2 text-sm text-muted">
+      <p className="mt-2 text-sm text-muted-foreground">
         Message everyone holding a ticket — a time change, a reminder, directions. One
         message per buyer, not per ticket.
       </p>
@@ -71,12 +71,12 @@ export default async function BroadcastsPage() {
       ) : null}
 
       {buyerCount === 0 ? (
-        <p className="mt-4 rounded-xl border border-border bg-card p-4 text-sm text-muted">
+        <p className="mt-4 rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
           Nobody has bought a ticket yet, so there is no audience. You can still compose
           and queue a message — it will simply match zero recipients.
         </p>
       ) : (
-        <p className="mt-4 text-sm text-muted">
+        <p className="mt-4 text-sm text-muted-foreground">
           Current audience: <strong>{buyerCount}</strong> buyer
           {buyerCount === 1 ? "" : "s"} with paid tickets.
         </p>
@@ -94,7 +94,7 @@ export default async function BroadcastsPage() {
         </div>
 
         {(broadcasts ?? []).length === 0 ? (
-          <p className="mt-3 rounded-xl border border-border bg-card p-4 text-sm text-muted">
+          <p className="mt-3 rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
             Nothing sent yet.
           </p>
         ) : (
@@ -102,10 +102,10 @@ export default async function BroadcastsPage() {
             {(broadcasts ?? []).map((b) => (
               <li key={b.id} className="rounded-xl border border-border bg-card p-4">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="text-xs text-muted uppercase">
+                  <p className="text-xs text-muted-foreground uppercase">
                     {b.channels.join(" · ")} · {b.status}
                   </p>
-                  <p className="text-xs text-muted tabular-nums">
+                  <p className="text-xs text-muted-foreground tabular-nums">
                     {b.sent_count}/{b.recipient_count} sent
                     {b.failed_count > 0 ? ` · ${b.failed_count} failed` : ""}
                   </p>

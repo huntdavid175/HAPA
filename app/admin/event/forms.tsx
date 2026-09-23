@@ -19,7 +19,7 @@ function Submit({ label, pendingLabel }: { label: string; pendingLabel?: string 
     <button
       type="submit"
       disabled={pending}
-      className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground disabled:opacity-60"
+      className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
     >
       {pending ? (pendingLabel ?? "Saving…") : label}
     </button>
@@ -29,7 +29,7 @@ function Submit({ label, pendingLabel }: { label: string; pendingLabel?: string 
 function Feedback({ state }: { state: ActionState }) {
   if (state.error) {
     return (
-      <p role="alert" className="text-sm font-medium text-accent">
+      <p role="alert" className="text-sm font-medium text-destructive">
         {state.error}
       </p>
     );
@@ -53,6 +53,7 @@ export type EventFormValues = {
   slug: string;
   description: string;
   venue: string;
+  coverImage: string;
   /** Pre-formatted for datetime-local, already in the event's timezone. */
   startsAtLocal: string;
   timezone: string;
@@ -74,7 +75,7 @@ export function EventForm({ event }: { event: EventFormValues }) {
         <div>
           <label htmlFor="slug" className="block text-sm font-medium">URL slug</label>
           <input id="slug" name="slug" defaultValue={event.slug} required className={field} />
-          <p className="mt-1 text-xs text-muted">
+          <p className="mt-1 text-xs text-muted-foreground">
             Appears in the link you share: /e/<span className="font-mono">your-slug</span>.
             Avoid changing it once posters are printed.
           </p>
@@ -83,6 +84,25 @@ export function EventForm({ event }: { event: EventFormValues }) {
           <label htmlFor="venue" className="block text-sm font-medium">Venue</label>
           <input id="venue" name="venue" defaultValue={event.venue} className={field} />
         </div>
+      </div>
+
+      <div>
+        <label htmlFor="coverImage" className="block text-sm font-medium">
+          Cover image URL
+        </label>
+        <input
+          id="coverImage"
+          name="coverImage"
+          type="url"
+          inputMode="url"
+          placeholder="https://…"
+          defaultValue={event.coverImage}
+          className={field}
+        />
+        <p className="mt-1 text-xs text-muted-foreground">
+          The banner at the top of the event page. Landscape works best — it is cropped to
+          a wide band. Leave it empty and the page falls back to a gradient.
+        </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -100,7 +120,7 @@ export function EventForm({ event }: { event: EventFormValues }) {
         <div>
           <label htmlFor="timezone" className="block text-sm font-medium">Timezone</label>
           <input id="timezone" name="timezone" defaultValue={event.timezone} className={field} />
-          <p className="mt-1 text-xs text-muted">
+          <p className="mt-1 text-xs text-muted-foreground">
             The time above is the time at the venue.
           </p>
         </div>
@@ -178,11 +198,11 @@ export function TierForm({
 
       <div className="grid gap-3 sm:grid-cols-4">
         <div className="sm:col-span-2">
-          <label className="block text-xs font-medium text-muted">Name</label>
+          <label className="block text-xs font-medium text-muted-foreground">Name</label>
           <input name="name" defaultValue={tier?.name ?? ""} required className={field} />
         </div>
         <div>
-          <label className="block text-xs font-medium text-muted">Price (GH₵)</label>
+          <label className="block text-xs font-medium text-muted-foreground">Price (GH₵)</label>
           <input
             name="priceGhs"
             type="number"
@@ -194,7 +214,7 @@ export function TierForm({
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-muted">Capacity</label>
+          <label className="block text-xs font-medium text-muted-foreground">Capacity</label>
           <input
             name="capacity"
             type="number"
@@ -208,7 +228,7 @@ export function TierForm({
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-muted">Description</label>
+        <label className="block text-xs font-medium text-muted-foreground">Description</label>
         <input name="description" defaultValue={tier?.description ?? ""} className={field} />
       </div>
 
@@ -225,7 +245,7 @@ export function DeactivateTierButton({ id }: { id: string }) {
   return (
     <form action={action} className="flex items-center gap-2">
       <input type="hidden" name="id" value={id} />
-      <button type="submit" className="text-sm text-muted underline hover:text-foreground">
+      <button type="submit" className="text-sm text-muted-foreground underline hover:text-foreground">
         Remove from sale
       </button>
       <Feedback state={state} />

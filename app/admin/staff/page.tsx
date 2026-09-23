@@ -27,7 +27,7 @@ export default async function StaffPage() {
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
       <h1 className="text-xl font-bold sm:text-2xl">Staff accounts</h1>
-      <p className="mt-2 text-sm text-muted">
+      <p className="mt-2 text-sm text-muted-foreground">
         Door staff can scan tickets and look them up by code or name. They cannot see the
         buyer list, revenue, or send messages.
       </p>
@@ -43,10 +43,10 @@ export default async function StaffPage() {
                 <p className="font-medium">
                   {account.full_name || account.email}
                   {account.id === viewer.id ? (
-                    <span className="ml-2 text-xs text-muted">(you)</span>
+                    <span className="ml-2 text-xs text-muted-foreground">(you)</span>
                   ) : null}
                 </p>
-                <p className="text-sm text-muted">
+                <p className="text-sm text-muted-foreground">
                   {account.email} · {account.role === "admin" ? "Admin" : "Door staff"}
                 </p>
               </div>
@@ -63,7 +63,7 @@ export default async function StaffPage() {
 
       <section className="mt-10">
         <h2 className="text-lg font-semibold">Add someone</h2>
-        <p className="mt-1 mb-4 text-sm text-muted">
+        <p className="mt-1 mb-4 text-sm text-muted-foreground">
           A password is generated for them and shown once.
         </p>
         <CreateStaffForm />

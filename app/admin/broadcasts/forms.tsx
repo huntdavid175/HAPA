@@ -14,7 +14,7 @@ function Submit({ label, pending: pendingLabel }: { label: string; pending: stri
     <button
       type="submit"
       disabled={pending}
-      className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground disabled:opacity-60"
+      className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
     >
       {pending ? pendingLabel : label}
     </button>
@@ -23,7 +23,7 @@ function Submit({ label, pending: pendingLabel }: { label: string; pending: stri
 
 function Feedback({ state }: { state: BroadcastState }) {
   if (state.error)
-    return <p role="alert" className="text-sm font-medium text-accent">{state.error}</p>;
+    return <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>;
   if (state.ok)
     return <p role="status" className="text-sm font-medium text-success">{state.ok}</p>;
   return null;
@@ -60,7 +60,7 @@ export function ComposeForm({
           placeholder="Doors now open at 7pm, not 8pm. Same venue. See you there."
           className={field}
         />
-        <p className="mt-1 text-xs text-muted">
+        <p className="mt-1 text-xs text-muted-foreground">
           {body.length}/480 characters
           {segments > 0
             ? ` · ${segments} SMS segment${segments === 1 ? "" : "s"} per recipient`
@@ -76,7 +76,7 @@ export function ComposeForm({
             <input type="checkbox" name="channels" value="sms" defaultChecked className="mt-1" />
             <span>
               <strong>SMS</strong>
-              <span className="block text-xs text-muted">
+              <span className="block text-xs text-muted-foreground">
                 Any wording, sends immediately, no approval needed. Use this for anything
                 unplanned.
               </span>
@@ -94,7 +94,7 @@ export function ComposeForm({
             />
             <span>
               <strong>WhatsApp</strong>
-              <span className="block text-xs text-muted">
+              <span className="block text-xs text-muted-foreground">
                 Requires a template Meta approved in advance. Your wording above will not
                 be sent as-is.
               </span>
@@ -105,7 +105,7 @@ export function ComposeForm({
             <input type="checkbox" name="channels" value="email" className="mt-1" />
             <span>
               <strong>Email</strong>
-              <span className="block text-xs text-muted">
+              <span className="block text-xs text-muted-foreground">
                 Free-form, useful as a backup when a phone number bounces.
               </span>
             </span>
@@ -119,7 +119,7 @@ export function ComposeForm({
             WhatsApp template name
           </label>
           <input id="whatsappTemplate" name="whatsappTemplate" className={field} />
-          <p className="mt-1 text-xs text-muted">
+          <p className="mt-1 text-xs text-muted-foreground">
             The exact name of an approved template, e.g. <code>event_time_change</code>.
           </p>
         </div>

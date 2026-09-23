@@ -50,7 +50,7 @@ export function OrderStatus({
     return (
       <main className="mx-auto w-full max-w-md px-4 py-8">
         <h1 className="text-2xl font-bold">You&rsquo;re in</h1>
-        <p className="mt-1 text-sm text-muted">
+        <p className="mt-1 text-sm text-muted-foreground">
           {tickets.length} ticket{tickets.length === 1 ? "" : "s"} for {eventName}.
         </p>
 
@@ -86,7 +86,7 @@ export function OrderStatus({
           ))}
         </ul>
 
-        <p className="mt-6 text-center text-xs text-muted">
+        <p className="mt-6 text-center text-xs text-muted-foreground">
           Save these links. Anyone holding one can use it.
         </p>
       </main>
@@ -97,7 +97,7 @@ export function OrderStatus({
     <main className="mx-auto w-full max-w-md px-4 py-10">
       <h1 className="text-xl font-bold">Confirming your payment…</h1>
 
-      <p className="mt-3 text-sm text-muted">
+      <p className="mt-3 text-sm text-muted-foreground">
         If you paid by mobile money, check <strong>{buyerPhone}</strong> for a PIN prompt
         and approve it. This usually takes under two minutes.
       </p>
@@ -109,7 +109,7 @@ export function OrderStatus({
         <Row label="Reference" value={reference} mono />
       </div>
 
-      <p className="mt-5 text-sm text-muted" aria-live="polite">
+      <p className="mt-5 text-sm text-muted-foreground" aria-live="polite">
         {waited < 120
           ? "Waiting for your payment to confirm. Keep this page open."
           : "This is taking longer than usual. Keep this page open — if the money has left your account, your ticket will still arrive by SMS and WhatsApp."}
@@ -117,7 +117,7 @@ export function OrderStatus({
 
       {/* Deliberately no retry button: a second attempt while the first is still in
           flight is the most common way buyers end up paying twice. */}
-      <p className="mt-6 text-xs text-muted">
+      <p className="mt-6 text-xs text-muted-foreground">
         Please don&rsquo;t pay again. If you were charged, your ticket is on its way even
         if you close this page. Quote reference{" "}
         <span className="font-mono">{reference}</span> if you need to contact the organizer.
@@ -129,7 +129,7 @@ export function OrderStatus({
 function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex justify-between gap-4 py-1">
-      <span className="text-muted">{label}</span>
+      <span className="text-muted-foreground">{label}</span>
       <span className={mono ? "font-mono text-xs" : "font-medium"}>{value}</span>
     </div>
   );

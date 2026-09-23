@@ -1,14 +1,26 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Archivo, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { cn } from "@/lib/utils";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+/**
+ * One family, two voices.
+ *
+ * Archivo is variable on both weight and width, so the poster-sized event title can run
+ * heavy and expanded while the body text stays at normal width — the contrast a display
+ * face usually provides, without a second font to download. That matters here: buyers
+ * open this on mobile data, often on the walk to the venue.
+ */
+const archivo = Archivo({
+  variable: "--font-sans",
   subsets: ["latin"],
+  axes: ["wdth"],
 });
 
+// Kept for ticket codes only. At the gate someone reads a code aloud off a cracked
+// screen, and a mono face is what keeps 0 from O and 1 from l.
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+  variable: "--font-code",
   subsets: ["latin"],
 });
 
@@ -27,7 +39,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={cn("h-full antialiased font-sans", archivo.variable, geistMono.variable)}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

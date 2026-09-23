@@ -13,7 +13,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="mt-2 w-full rounded-lg bg-accent px-4 py-3 text-base font-semibold text-accent-foreground disabled:opacity-60"
+      className="mt-2 w-full rounded-lg bg-primary px-4 py-3 text-base font-semibold text-primary-foreground disabled:opacity-60"
     >
       {pending ? "Signing in…" : "Sign in"}
     </button>
@@ -56,7 +56,7 @@ export function SignInForm({ next }: { next?: string }) {
       </div>
 
       {state.error ? (
-        <p role="alert" className="text-sm font-medium text-accent">
+        <p role="alert" className="text-sm font-medium text-destructive">
           {state.error}
         </p>
       ) : null}

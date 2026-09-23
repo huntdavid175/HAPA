@@ -1,11 +1,38 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { DownloadIcon, SearchIcon, UsersIcon } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { formatPesewas } from "@/lib/format";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export const metadata: Metadata = { title: "Buyers" };
 export const dynamic = "force-dynamic";
+
+/** paid is the good case; pending is in-flight; anything else is dead. */
+function statusVariant(status: string) {
+  if (status === "paid") return "default" as const;
+  if (status === "pending") return "secondary" as const;
+  return "outline" as const;
+}
 
 export default async function BuyersPage({ searchParams }: PageProps<"/admin/buyers">) {
   const { q } = await searchParams;
@@ -36,90 +63,120 @@ export default async function BuyersPage({ searchParams }: PageProps<"/admin/buy
   const rows = orders ?? [];
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
+    <>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-bold sm:text-2xl">Buyers</h1>
-        <Link
-          href={`/admin/buyers/export${query ? `?q=${encodeURIComponent(query)}` : ""}`}
-          prefetch={false}
-          className="rounded-lg border border-border px-3 py-2 text-sm font-medium"
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Buyers</h1>
+          <p className="text-muted-foreground text-sm">
+            Everyone who has started or completed an order.
+          </p>
+        </div>
+
+        <Button
+          variant="outline"
+          nativeButton={false}
+          render={
+            <Link
+              href={`/admin/buyers/export${query ? `?q=${encodeURIComponent(query)}` : ""}`}
+              prefetch={false}
+            />
+          }
         >
+          <DownloadIcon data-icon="inline-start" />
           Export CSV
-        </Link>
+        </Button>
       </div>
 
-      <form className="mt-4" role="search">
+      <form role="search" className="max-w-sm">
         <label htmlFor="q" className="sr-only">
           Search by name, phone or email
         </label>
-        <input
-          id="q"
-          name="q"
-          type="search"
-          defaultValue={query}
-          placeholder="Search name, phone or email"
-          className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-base"
-        />
+        <div className="relative">
+          <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+          <Input
+            id="q"
+            name="q"
+            type="search"
+            defaultValue={query}
+            placeholder="Search name, phone or email"
+            className="pl-9"
+          />
+        </div>
       </form>
 
       {rows.length === 0 ? (
-        <p className="mt-6 rounded-xl border border-border bg-card p-4 text-sm text-muted">
-          {query
-            ? `No buyers match “${query}”.`
-            : "No one has bought a ticket yet. Buyers will appear here once online payment is live."}
-        </p>
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <UsersIcon />
+            </EmptyMedia>
+            <EmptyTitle>{query ? "No matches" : "No buyers yet"}</EmptyTitle>
+            <EmptyDescription>
+              {query
+                ? `Nothing matches “${query}”. Try a partial phone number or surname.`
+                : "Buyers appear here as soon as the first order comes through."}
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : (
-        <div className="mt-6 overflow-x-auto rounded-xl border border-border">
-          <table className="w-full min-w-[40rem] text-left text-sm">
-            <thead className="bg-card text-xs text-muted uppercase">
-              <tr>
-                <th className="px-4 py-3 font-medium">Buyer</th>
-                <th className="px-4 py-3 font-medium">Contact</th>
-                <th className="px-4 py-3 font-medium">Tickets</th>
-                <th className="px-4 py-3 font-medium">Amount</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {rows.map((order) => {
-                const tickets = Array.isArray(order.tickets) ? order.tickets : [];
-                const checkedIn = tickets.filter((t) => t.status === "checked_in").length;
-                return (
-                  <tr key={order.id}>
-                    <td className="px-4 py-3 font-medium">{order.buyer_name}</td>
-                    <td className="px-4 py-3 text-muted">
-                      <div>{order.buyer_phone}</div>
-                      <div className="text-xs">{order.buyer_email}</div>
-                    </td>
-                    <td className="px-4 py-3 tabular-nums">
-                      {tickets.length}
-                      {checkedIn > 0 ? (
-                        <span className="text-muted"> · {checkedIn} in</span>
-                      ) : null}
-                    </td>
-                    <td className="px-4 py-3 tabular-nums">
-                      {formatPesewas(order.total_pesewas)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={
-                          order.status === "paid"
-                            ? "text-success"
-                            : order.status === "pending"
-                              ? "text-warning"
-                              : "text-muted"
-                        }
-                      >
-                        {order.status}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <Card>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Buyer</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Tickets</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((order) => {
+                  const tickets = Array.isArray(order.tickets) ? order.tickets : [];
+                  const checkedIn = tickets.filter(
+                    (t) => t.status === "checked_in",
+                  ).length;
+
+                  return (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-medium">
+                        <Link
+                          href={`/admin/orders/${order.id}`}
+                          className="underline-offset-4 hover:underline"
+                        >
+                          {order.buyer_name}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        <div>{order.buyer_phone}</div>
+                        <div className="text-xs">{order.buyer_email}</div>
+                      </TableCell>
+                      <TableCell className="tabular-nums">
+                        {tickets.length}
+                        {checkedIn > 0 ? (
+                          <span className="text-muted-foreground">
+                            {" "}
+                            · {checkedIn} in
+                          </span>
+                        ) : null}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatPesewas(order.total_pesewas)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={statusVariant(order.status)}>
+                          {order.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
-    </main>
+    </>
   );
 }

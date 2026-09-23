@@ -33,8 +33,9 @@
       `admin.ts` (secret key, `server-only`)
 - [x] `npm run typecheck` script
 - [x] **Verified:** boot fails loudly with no env; boots clean and serves `GET / 200` with env
-- [ ] Bump to Next.js 16.3.6 when it publishes (security release dated 2026-09-22 — the
-      registry still shows 16.3.5 as `latest`)
+- [x] Bumped to Next.js **16.3.6** (the 2026-09-22 security release), pinned exact in
+      `package.json` rather than caret-ranged. Typecheck, lint, build and every check
+      suite re-run green against it
 - [x] Supabase project — production: `HAPA` (`psykhlckpcrqinoqzssv`), linked via CLI
 - [ ] Create Supabase project — preview/staging *(needs your account)*
 - [x] Real Supabase keys in `.env.local` (`sb_publishable_…` / `sb_secret_…` — the legacy
@@ -109,7 +110,7 @@
       password change, current password required on update)
   - Both matter for door staff signing in on shared phones at the gate
 
-## Phase 2 — Public event page ✅
+## Phase 2 — Public event page ✅ (redesigned)
 
 - [x] `app/page.tsx` — resolves the single `published` event; root IS the event
 - [x] `app/e/[slug]/page.tsx` — awaited `params`, `notFound()` on unknown slug
@@ -118,6 +119,78 @@
 - [x] `lib/format.ts` — pesewas → `GH₵50.00`; dates rendered in the **venue's** timezone
 - [x] Tier cards with price, description, scarcity label
 - [x] Mobile-first layout, dark mode, no horizontal scroll
+- [x] **Redesigned to the supplied dark mockup.** Cover hero with back + share controls,
+      title and venue pulled up over the fade, description with a fade-out and a centred
+      "Show More", label/value detail rows, and a fixed bottom bar pairing "Starting
+      from <price>" with a yellow **Buy Ticket** that scrolls to the picker
+- [x] Desktop view built for it: capped hero, two-column grid, sticky rail carrying the
+      detail rows, the price and the buy button
+- [x] **Public event page pinned dark** via a scoped `.theme-night` class, whatever the
+      device prefers — it is a poster, and one palette beats maintaining two. Admin and
+      the gate still follow the device
+- [x] `color-scheme: dark` on the wrapper so scrollbars and controls follow, and
+      `overscroll-behavior-y: none` so rubber-band does not flash the light body colour
+- [x] **Design pass with the `frontend-design` skill.** Typeface moved off Geist (the
+      Next scaffold default) to **Archivo**, variable on weight *and* width — the poster
+      title runs heavy and expanded, body stays normal width, one webfont on mobile data
+- [x] Palette re-cut warm: plum-black `#141016` rather than a blue-grey near-black, warm
+      chalk `#f2ece4`, and the yellow moved to Ghana flag gold `#f2b705` so it reads as
+      sign paint rather than a generic acid accent
+- [x] **The page is a ticket** — hero is the stub, a punched perforation is the tear, the
+      detail below is what you keep. Tiers echo it because they genuinely are tickets:
+      price torn off behind a dashed seam, notches on the seam, one CSS var driving both
+- [x] Cut the gradient wash (decoration) and the card around the facts — rounded cards on
+      everything was the weakest part. Facts are now hairline-ruled rows
+- [x] **No-cover state redesigned**: the hero collapses to a control strip and the title
+      becomes the top of the page. A 400px field of flat colour was a hole, not a design,
+      and most events are published before anyone uploads artwork
+- [x] **Tier selection moved into a sheet.** "See tickets" opens a bottom sheet on a phone
+      and a centred panel from `sm` up, so nobody loses sight of the event while choosing.
+      Built on native `<dialog>` + `showModal()`: focus trap, Escape, inert background and
+      top-layer painting come free rather than being re-implemented
+- [x] Body scroll locked while open (`showModal()` alone does not stop iOS scrolling the
+      page behind), backdrop click closes, motion yields to `prefers-reduced-motion`
+- [x] One sheet, two triggers (fixed bar + desktop rail) found by id, so the tier markup
+      exists once
+- [x] **`<noscript>` fallback**: the sheet's trigger is hidden and the tiers render inline,
+      so the page never becomes a dead end for anyone whose JavaScript fails
+- [x] **Verified by driving the browser**: open sets `open=true` and locks the body,
+      Escape and backdrop-click both close and release it, focus lands inside the sheet,
+      and the no-JS path was screenshotted with script execution disabled
+- [x] **Title scales to its length.** The real event name is 86 characters and filled a
+      phone eight lines deep at display size, pushing venue, date and the buy button below
+      the fold. Three length buckets now; long names step down in size *and* calm down in
+      weight and width, because expanded ultra-bold is punishing over four lines
+- [x] Hero switched to `object-contain` over a blurred copy of the same image. Covers are
+      posters — they carry the name, dates and venue in the artwork — and a 16/9 `cover`
+      crop was cutting exactly that off on desktop
+- [x] **Selection is now visible.** The sheet was rendering the read-only tier list, so
+      ticket-shaped cards invited taps and did nothing. It now renders the real picker
+      whether or not Paystack is configured; only the pay step is gated
+- [x] A chosen tier is marked three ways at once — gold ring on the stub, a gold `× N`
+      badge beside the price, and a running `N tickets · total` pinned under the list.
+      One quiet digit between a minus and a plus is not enough for someone about to pay
+- [x] **Fixed a stale-closure bug in the stepper**: two fast taps on `+` both read the
+      same quantity from the render closure, so the second overwrote the first and a
+      ticket silently vanished. Quantities now derive from previous state. Caught by
+      driving the real UI — clicking `+` twice produced 1, and now produces 2
+- [x] Rating, "joined members" and the host card deliberately **not** built: there is no
+      ratings or organizer data, and showing buyer avatars would leak who bought tickets.
+      Doors Open / Doors Close became **Date / Starts / Ends** from `starts_at` /
+      `ends_at`; Ends renders only when one was actually set
+- [x] Back arrow renders only when `history.length > 1` — most buyers arrive from a poster
+      QR into a fresh tab, and an arrow that does nothing is worse than none. Read via
+      `useSyncExternalStore` so it neither breaks SSR nor sets state in an effect
+- [x] The heart in the mockup became **share**: buyers never sign in, so nothing can
+      remember a favourite, and sharing is what actually fills the event
+- [x] Cover image is now settable in admin (`cover_image` had no form field); validated as
+      a URL, stored null when blank, and the page falls back to a gradient
+- [x] Hero uses a plain `img`, not `next/image`: the URL is admin-entered free text and an
+      unlisted host would make `next/image` 500 on the buyer's first screen
+- [x] Cover is `alt=""` — decorative, with the event name as the `h1` right beneath. Found
+      by testing a broken URL, which painted the alt string across the top of the page
+- [x] **Verified with real screenshots** at 390 / 768 / 1280, light and dark; zero
+      horizontal overflow measured at 390 (`scrollWidth === clientWidth`)
 - [x] States: no published event · sold out · not on sale yet · sales closed · no tiers
 - [x] Honest "buying isn't open yet" panel while payments are deferred
 - [x] **Verified in the running app:**
@@ -179,8 +252,8 @@
       check-in works even if the gate cannot load a web page
 - [x] Group orders: pager between the tickets on one order, each admitting one person
 - [ ] Service worker so the ticket page caches offline once opened
-- [ ] Message body carries **both** the link and the short code
-- [ ] Success page shows tickets on screen immediately *(needs checkout)*
+- [x] Message body carries **both** the link and the short code
+- [x] Success page shows tickets on screen immediately
 - [ ] Email fallback when phone channels fail
 
 ## Phase 6 — Admin dashboard ✅ (bar the order actions)
@@ -210,8 +283,15 @@
       Lagos, New York (both DST states), Kolkata (+5:30) and Auckland; midnight does not
       roll a day
 - [x] Verified rendered content on every admin page + CSV headers; `npm run build` clean
-- [ ] **Resend ticket** action — needs Phase 5 (messaging)
-- [ ] **Void ticket** / **Mark refunded** — needs tickets to exist (Phases 3–4)
+- [x] **Resend ticket** action — `/admin/orders/[id]`, queues a fresh outbox row. The
+      body is recomposed from the tickets as they stand, so a resend after a void lists
+      only what the buyer still holds
+- [x] **Void ticket** / **Mark refunded** — both demand a written reason, because it is
+      the only record of why a ticket stopped working. Voiding an *admitted* ticket is
+      refused: the check constraint rejects it anyway, and forcing it through would mean
+      nulling the check-in that proves they were let in
+- [x] Order detail page: buyer, items, every ticket with status, and the full message
+      history with per-message retry. Reached from the buyers table and the dashboard
 
 ## Phase 7 — Broadcasts ✅ (sends nothing until a provider is wired)
 
@@ -272,12 +352,43 @@
   - lookup returns only gate-relevant fields, capped at 10
   - ticket page loads with no login, shows code + QR, unknown token 404s
 
+## Phase 10 — shadcn/ui admin ✅ (partial)
+
+- [x] `shadcn init` (preset **base-nova**, Base UI primitives, lucide icons) against the
+      existing Next 16 + Tailwind v4 setup
+- [x] **Resolved a token collision before it shipped.** The project already used
+      `--muted`, `--accent` and `--card`, but with different meanings: `--muted` was
+      *text*, shadcn's is a *surface*. Left alone, 122 `text-muted` usages would have
+      turned near-white. Migrated the whole app: `text-muted` → `text-muted-foreground`,
+      error `text-accent` → `text-destructive`, primary `bg-accent` → `bg-primary`
+- [x] `.theme-night` rewritten to override shadcn's semantic tokens, so the public event
+      page keeps its own identity without forking the palette
+- [x] Kept **one typeface**. `init` injected Geist as `--font-sans` and forced `font-sans`
+      on `<html>`, which would have silently undone the Archivo work
+- [x] Admin shell: collapsible `Sidebar` grouped **Tonight** / **Setup** — what you open
+      with a queue at the door, versus what you did last month. Live badge on "Failed
+      messages" so an undelivered ticket is visible from anywhere in the admin
+- [x] Dashboard rebuilt on `Card` / `Badge` / `Progress` / `Table` / `Alert` / `Empty`
+- [x] Buyers, failed messages, and order detail rebuilt on the same primitives; order
+      actions moved to `Button` + `Field` + `Spinner`
+- [x] Fixed a Base UI warning I introduced — a `<Link>` rendered through `Button` strips
+      native button semantics; `nativeButton={false}` is the documented fix
+- [x] Rewrote shadcn's generated `hooks/use-mobile.ts` to `useSyncExternalStore`; upstream
+      sets state in an effect, which this project's lint rules reject
+- [ ] Event settings, staff, broadcasts and share kit still use hand-rolled markup. They
+      were migrated to the new tokens so they render correctly, but have not been
+      recomposed onto shadcn primitives
+
 ## Phase 9 — Hardening
 
-- [ ] Failure dashboard panel: failed payments, undelivered tickets, unprocessed webhooks
-- [ ] One-click resend from the failure panel
+- [x] `/admin/failures` — the failed half of the outbox, ticket deliveries sorted above
+      broadcasts, each linked to its buyer. The dashboard's counter now links here instead
+      of being a dead number
+- [x] One-click retry from the failure panel. The worker parks a message after 5 tries
+      so it stops burning credit; the retry resets the counter, which is what puts it back
+      within reach of the claim query — deliberately a human decision, not an endless loop
 - [ ] Load-test `reserve_tickets` under a simulated on-sale spike
-- [ ] Pin exact Next.js patch version; confirm current security release applied
+- [x] Pin exact Next.js patch version; confirm current security release applied
 
 ---
 
@@ -326,11 +437,12 @@
 |---|---|---|
 | `check:datetime` | 24 | venue-time ⇄ UTC, DST, half-hour offsets |
 | `check:phone` | 22 | every way a Ghanaian types their number |
-| `check:auth` | 16 | role split; door staff locked out of every admin route |
+| `check:auth` | 21 | role split; door staff locked out of every admin route |
 | `check:broadcast` | 13 | audience fan-out, idempotency, worker drain |
 | `check:gate` | 18 | **10 concurrent scans of one QR → 1 admitted** |
 | `check:checkout` | 21 | **10 buyers racing for 5 tickets → exactly 5 sold** |
 | `check:webhook` | 12 | signature, idempotency, malformed payloads |
+| `check:orders` | 14 | **voiding returns the seat to sale; an admitted ticket cannot be voided** |
 
 Not covered without live Paystack test keys: `transaction/initialize` and
 `transaction/verify`. Everything either side of those two calls is checked.

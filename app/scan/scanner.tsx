@@ -87,7 +87,7 @@ function TabButton({
       aria-selected={active}
       onClick={onClick}
       className={`rounded-lg px-3 py-2.5 text-sm font-semibold ${
-        active ? "bg-accent text-accent-foreground" : "border border-border text-muted"
+        active ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground"
       }`}
     >
       {children}
@@ -107,7 +107,7 @@ function ResultBanner({
       ? "border-success bg-success/15"
       : result.outcome === "already_used"
         ? "border-warning bg-warning/15"
-        : "border-accent bg-accent/15";
+        : "border-destructive bg-destructive/15";
 
   const heading =
     result.outcome === "valid"
@@ -122,7 +122,7 @@ function ResultBanner({
     <div className={`mt-4 rounded-xl border-2 p-4 ${tone}`} role="status" aria-live="assertive">
       <div className="flex items-start justify-between gap-3">
         <p className="text-2xl font-extrabold tracking-tight">{heading}</p>
-        <button type="button" onClick={onDismiss} className="text-sm text-muted underline">
+        <button type="button" onClick={onDismiss} className="text-sm text-muted-foreground underline">
           Clear
         </button>
       </div>
@@ -221,7 +221,7 @@ function ScanTab({
             ? "Camera permission was refused."
             : "This browser cannot scan QR codes."}
         </p>
-        <p className="mt-1 text-sm text-muted">
+        <p className="mt-1 text-sm text-muted-foreground">
           Use the <strong>Look up</strong> tab and type the code on the guest&rsquo;s
           ticket. It works exactly the same.
         </p>
@@ -240,7 +240,7 @@ function ScanTab({
         />
         <div className="pointer-events-none absolute inset-8 rounded-lg border-2 border-white/70" />
       </div>
-      <p className="mt-2 text-center text-sm text-muted">
+      <p className="mt-2 text-center text-sm text-muted-foreground">
         {busy ? "Checking…" : "Point the camera at the ticket QR"}
       </p>
     </div>
@@ -290,10 +290,10 @@ function LookupTab({
         className="mt-1 w-full rounded-lg border border-border bg-card px-3 py-3 font-mono text-base"
       />
 
-      {searching ? <p className="mt-2 text-sm text-muted">Searching…</p> : null}
+      {searching ? <p className="mt-2 text-sm text-muted-foreground">Searching…</p> : null}
 
       {!searching && query.trim().length >= 2 && matches.length === 0 ? (
-        <p className="mt-3 rounded-xl border border-border bg-card p-3 text-sm text-muted">
+        <p className="mt-3 rounded-xl border border-border bg-card p-3 text-sm text-muted-foreground">
           No match. Check the spelling, or ask the guest to show the code on their phone.
         </p>
       ) : null}
@@ -306,20 +306,20 @@ function LookupTab({
           >
             <div className="min-w-0">
               <p className="truncate font-medium">{match.buyerName}</p>
-              <p className="text-sm text-muted">
+              <p className="text-sm text-muted-foreground">
                 <span className="font-mono">{match.code}</span> · {match.tierName}
               </p>
               {match.status === "checked_in" ? (
                 <p className="text-xs text-warning">Already checked in</p>
               ) : match.status === "void" ? (
-                <p className="text-xs text-accent">Cancelled</p>
+                <p className="text-xs text-destructive">Cancelled</p>
               ) : null}
             </div>
             <button
               type="button"
               disabled={busy || match.status !== "issued"}
               onClick={() => onCheckIn(match.code)}
-              className="shrink-0 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-accent-foreground disabled:opacity-40"
+              className="shrink-0 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-40"
             >
               Check in
             </button>

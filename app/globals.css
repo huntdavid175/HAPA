@@ -1,15 +1,54 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #12100e;
-  --muted: #6b6560;
-  --border: #e6e2dd;
-  --card: #ffffff;
-  --accent: #b4491f;
-  --accent-foreground: #ffffff;
+  --muted: oklch(0.97 0 0);
+  --border: oklch(0.922 0 0);
+  --card: oklch(1 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
   --success: #1f7a4d;
   --warning: #8a5a00;
+
+  /* Event-page furniture: the date badge and the primary buy button. Kept separate from
+     --accent, which the admin uses for destructive and error states — the buyer's "yes"
+     button and an admin's "this failed" should never share a colour. */
+  --highlight: #6b74e8;
+  --highlight-foreground: #ffffff;
+  --cta: #151a3d;
+  --cta-foreground: #ffffff;
+  /* Surface behind the small stat cards, a touch off the page background. */
+  --surface: #f6f5f3;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
 }
 
 @theme inline {
@@ -22,14 +61,49 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-success: var(--success);
   --color-warning: var(--warning);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-highlight: var(--highlight);
+  --color-highlight-foreground: var(--highlight-foreground);
+  --color-cta: var(--cta);
+  --color-cta-foreground: var(--cta-foreground);
+  --color-surface: var(--surface);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-code);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-destructive: var(--destructive);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #12100e;
-    --foreground: #f5f2ef;
     --muted: #a49c94;
     --border: #2c2824;
     --card: #1a1714;
@@ -37,14 +111,289 @@
     --accent-foreground: #16120f;
     --success: #4ec08a;
     --warning: #e0a83c;
+
+    --highlight: #8a92f2;
+    --highlight-foreground: #12132b;
+    /* Inverted: a navy pill on a near-black page would read as a hole, not a button. */
+    --cta: #f5f2ef;
+    --cta-foreground: #16120f;
+    --surface: #211d19;
+  }
+}
+
+/**
+ * The public event page is pinned dark whatever the device prefers.
+ *
+ * It is a poster more than a document: the cover photo, the yellow buy button and the
+ * fade over the description are all designed against one palette, and letting half the
+ * audience see a white version would mean maintaining two. Admin and the gate still
+ * follow the device — the dashboard is read in daylight and the scanner in a dark venue.
+ *
+ * Scoped to a class rather than :root so it travels with the page, not the app.
+ */
+.theme-night {
+  /* Plum-black, not device black. Ghanaian nightlife is warm — lamplight, dust, brick —
+     and a blue-grey #0B0B0B would read as a settings screen. */
+  --background: #141016;
+  --foreground: #f2ece4;
+  --card: #1c1622;
+  --card-foreground: #f2ece4;
+  --popover: #1c1622;
+  --popover-foreground: #f2ece4;
+  --border: #2b2230;
+  --input: #2b2230;
+  --ring: #f2b705;
+  --surface: #1c1622;
+
+  /* shadcn's semantics, not the project's old ones: `--muted` is a surface and
+     `--muted-foreground` is the text on it. The public page's secondary copy uses
+     `text-muted-foreground`, so that is the one that has to carry the dim mauve. */
+  --muted: #1c1622;
+  --muted-foreground: #9c8f97;
+
+  /* `--accent` is a hover surface in shadcn, and errors live on `--destructive`. */
+  --accent: #241d2b;
+  --accent-foreground: #f2ece4;
+  --destructive: #e4703f;
+  --primary: #f2b705;
+  --primary-foreground: #1a1206;
+  --secondary: #241d2b;
+  --secondary-foreground: #f2ece4;
+
+  --highlight: #c9a6ff;
+  --highlight-foreground: #1a1024;
+  --success: #5fcb92;
+  --warning: #e0a83c;
+
+  /* The buy button, and the only saturated colour on the page. Ghana's flag gold rather
+     than a generic acid accent — it reads as sign paint, which is where the country's
+     event posters actually come from. */
+  --cta: #f2b705;
+  --cta-foreground: #1a1206;
+
+  /* Makes scrollbars and form controls inside the page render dark too. */
+  color-scheme: dark;
+}
+
+/**
+ * The page is a ticket.
+ *
+ * One structural idea, used once: the hero is the stub, this is the tear, everything
+ * below is the ticket itself. The notches are punched out of the page edges, so the
+ * line has to sit on the page background rather than on a card.
+ */
+.tear {
+  position: relative;
+  height: 0;
+  border-top: 2px dashed var(--border);
+}
+
+.tear::before,
+.tear::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  background: var(--background);
+  transform: translateY(-50%);
+}
+
+.tear::before {
+  left: -0.75rem;
+}
+
+.tear::after {
+  right: -0.75rem;
+}
+
+/**
+ * A tier reads as a stub: name and description on the left, price torn off on the right.
+ * The perforation is the divider, so no extra rule is needed to separate them.
+ */
+.stub {
+  position: relative;
+  /* One source for the seam: the price column's width and the punched notches both
+     read this, so they cannot drift apart. */
+  --stub-width: 9rem;
+}
+
+.stub::before,
+.stub::after {
+  content: "";
+  position: absolute;
+  right: var(--stub-width);
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 9999px;
+  background: var(--background);
+  transform: translateX(50%);
+}
+
+.stub::before {
+  top: -0.4375rem;
+}
+
+.stub::after {
+  bottom: -0.4375rem;
+}
+
+/**
+ * The ticket sheet: a bottom sheet on a phone, a centred panel from `sm` up.
+ *
+ * `<dialog>` defaults to a centred box with `display: none` when closed, so the open and
+ * closed states are laid out by hand. `allow-discrete` plus `@starting-style` is what
+ * lets a property that flips between `none` and `block` animate at all — without both,
+ * the sheet would pop rather than slide.
+ */
+.ticket-drawer {
+  max-width: none;
+  max-height: none;
+  width: 100%;
+  margin: 0 0 0 auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  position: fixed;
+  inset: auto 0 0 0;
+  overflow: visible;
+  transition:
+    translate 260ms ease,
+    opacity 200ms ease,
+    overlay 260ms allow-discrete,
+    display 260ms allow-discrete;
+  translate: 0 100%;
+  opacity: 0;
+}
+
+.ticket-drawer > div {
+  border-top: 1px solid var(--border);
+  border-radius: 1.25rem 1.25rem 0 0;
+}
+
+.ticket-drawer[open] {
+  translate: 0 0;
+  opacity: 1;
+}
+
+@starting-style {
+  .ticket-drawer[open] {
+    translate: 0 100%;
+    opacity: 0;
+  }
+}
+
+.ticket-drawer::backdrop {
+  background: rgb(0 0 0 / 0.6);
+  transition:
+    opacity 200ms ease,
+    overlay 200ms allow-discrete,
+    display 200ms allow-discrete;
+  opacity: 0;
+}
+
+.ticket-drawer[open]::backdrop {
+  opacity: 1;
+}
+
+@starting-style {
+  .ticket-drawer[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+@media (min-width: 40rem) {
+  .ticket-drawer {
+    inset: 0;
+    margin: auto;
+    width: min(32rem, calc(100vw - 3rem));
+    translate: 0 1.5rem;
+  }
+
+  .ticket-drawer > div {
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+  }
+
+  @starting-style {
+    .ticket-drawer[open] {
+      translate: 0 1.5rem;
+    }
+  }
+}
+
+/* Motion here is a response to a tap, so it earns its place — but it still yields. */
+@media (prefers-reduced-motion: reduce) {
+  .ticket-drawer,
+  .ticket-drawer::backdrop {
+    transition-duration: 1ms;
+  }
+
+  .ticket-drawer,
+  .ticket-drawer[open] {
+    translate: none;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
   /* Buyers are overwhelmingly on phones; stop iOS zooming on tap and bouncing sideways. */
   -webkit-text-size-adjust: 100%;
   overflow-x: hidden;
+  overscroll-behavior-y: none;
+}
+
+/**
+ * With no JavaScript the sheet cannot open, so its trigger is hidden and the tiers that
+ * live inside it are rendered inline instead. The page never becomes a dead end.
+ */
+noscript .noscript-tiers {
+  display: block;
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
 }

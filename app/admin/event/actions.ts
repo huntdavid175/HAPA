@@ -28,8 +28,10 @@ const eventSchema = z.object({
   coverImage: z
     .union([z.literal(""), z.url("Enter a full image URL, starting http:// or https://")])
     .default(""),
-  // datetime-local gives "2026-10-22T20:00" with no zone; interpreted as venue-local.
-  startsAt: z.string().min(1, "Set the date and time"),
+  // "2026-10-22T20:00" with no zone; interpreted as venue-local.
+  startsAt: z.string().min(1, "Pick the date the event runs"),
+  // Empty means no published end time, which the column allows.
+  endsAt: z.union([z.literal(""), z.string().min(1)]).default(""),
   timezone: z.string().trim().min(1).default("Africa/Accra"),
 });
 
@@ -47,21 +49,30 @@ export async function saveEvent(
     venue: formData.get("venue") ?? "",
     coverImage: formData.get("coverImage") ?? "",
     startsAt: formData.get("startsAt"),
+    endsAt: formData.get("endsAt") ?? "",
     timezone: formData.get("timezone") || "Africa/Accra",
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Check the form", ok: null };
   }
 
-  const { id, name, slug, description, venue, coverImage, startsAt, timezone } =
+  const { id, name, slug, description, venue, coverImage, startsAt, endsAt, timezone } =
     parsed.data;
   const supabase = await createClient();
 
   let startsAtIso: string;
+  let endsAtIso: string | null = null;
   try {
     startsAtIso = localInputToUtcIso(startsAt, timezone);
+    if (endsAt) endsAtIso = localInputToUtcIso(endsAt, timezone);
   } catch {
     return { error: "That date and time could not be read", ok: null };
+  }
+
+  // `events_ends_after_starts` enforces this in the database too, but a constraint
+  // violation surfaces as an opaque error. Catching it here names the actual problem.
+  if (endsAtIso && endsAtIso <= startsAtIso) {
+    return { error: "The event has to end after it starts", ok: null };
   }
 
   const payload = {
@@ -73,6 +84,7 @@ export async function saveEvent(
     // the only check the renderer needs.
     cover_image: coverImage || null,
     starts_at: startsAtIso,
+    ends_at: endsAtIso,
     timezone,
   };
 

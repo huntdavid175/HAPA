@@ -3,6 +3,19 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
+import { Button } from "@/components/ui/button";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+  FieldSet,
+  FieldLegend,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Spinner } from "@/components/ui/spinner";
+import { ScheduleFields } from "./schedule-fields";
 import {
   saveEvent,
   saveTier,
@@ -13,16 +26,23 @@ import {
 
 const initial: ActionState = { error: null, ok: null };
 
-function Submit({ label, pendingLabel }: { label: string; pendingLabel?: string }) {
+function Submit({
+  label,
+  pendingLabel,
+  variant,
+  size,
+}: {
+  label: string;
+  pendingLabel?: string;
+  variant?: React.ComponentProps<typeof Button>["variant"];
+  size?: React.ComponentProps<typeof Button>["size"];
+}) {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-    >
+    <Button type="submit" disabled={pending} variant={variant} size={size}>
+      {pending ? <Spinner data-icon="inline-start" /> : null}
       {pending ? (pendingLabel ?? "Saving…") : label}
-    </button>
+    </Button>
   );
 }
 
@@ -44,9 +64,6 @@ function Feedback({ state }: { state: ActionState }) {
   return null;
 }
 
-const field =
-  "mt-1 w-full rounded-lg border border-border bg-card px-3 py-2.5 text-base";
-
 export type EventFormValues = {
   id?: string;
   name: string;
@@ -54,8 +71,10 @@ export type EventFormValues = {
   description: string;
   venue: string;
   coverImage: string;
-  /** Pre-formatted for datetime-local, already in the event's timezone. */
+  /** Pre-formatted as YYYY-MM-DDTHH:mm, already in the event's timezone. */
   startsAtLocal: string;
+  /** Empty when the organiser has not published an end time. */
+  endsAtLocal: string;
   timezone: string;
 };
 
@@ -63,78 +82,76 @@ export function EventForm({ event }: { event: EventFormValues }) {
   const [state, action] = useActionState(saveEvent, initial);
 
   return (
-    <form action={action} className="space-y-4">
+    <form action={action}>
       {event.id ? <input type="hidden" name="id" value={event.id} /> : null}
 
-      <div>
-        <label htmlFor="name" className="block text-sm font-medium">Event name</label>
-        <input id="name" name="name" defaultValue={event.name} required className={field} />
-      </div>
+      <FieldGroup>
+        <FieldSet>
+          <FieldLegend>Details</FieldLegend>
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="name">Event name</FieldLabel>
+              <Input id="name" name="name" defaultValue={event.name} required />
+            </Field>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label htmlFor="slug" className="block text-sm font-medium">URL slug</label>
-          <input id="slug" name="slug" defaultValue={event.slug} required className={field} />
-          <p className="mt-1 text-xs text-muted-foreground">
-            Appears in the link you share: /e/<span className="font-mono">your-slug</span>.
-            Avoid changing it once posters are printed.
-          </p>
-        </div>
-        <div>
-          <label htmlFor="venue" className="block text-sm font-medium">Venue</label>
-          <input id="venue" name="venue" defaultValue={event.venue} className={field} />
-        </div>
-      </div>
+            <div className="grid gap-6 sm:grid-cols-2">
+              <Field>
+                <FieldLabel htmlFor="slug">URL slug</FieldLabel>
+                <Input id="slug" name="slug" defaultValue={event.slug} required />
+                <FieldDescription>
+                  The link you share: /e/<span className="font-mono">your-slug</span>.
+                  Avoid changing it once posters are printed.
+                </FieldDescription>
+              </Field>
 
-      <div>
-        <label htmlFor="coverImage" className="block text-sm font-medium">
-          Cover image URL
-        </label>
-        <input
-          id="coverImage"
-          name="coverImage"
-          type="url"
-          inputMode="url"
-          placeholder="https://…"
-          defaultValue={event.coverImage}
-          className={field}
-        />
-        <p className="mt-1 text-xs text-muted-foreground">
-          The banner at the top of the event page. Landscape works best — it is cropped to
-          a wide band. Leave it empty and the page falls back to a gradient.
-        </p>
-      </div>
+              <Field>
+                <FieldLabel htmlFor="venue">Venue</FieldLabel>
+                <Input id="venue" name="venue" defaultValue={event.venue} />
+              </Field>
+            </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label htmlFor="startsAt" className="block text-sm font-medium">Starts</label>
-          <input
-            id="startsAt"
-            name="startsAt"
-            type="datetime-local"
-            defaultValue={event.startsAtLocal}
-            required
-            className={field}
+            <Field>
+              <FieldLabel htmlFor="description">Description</FieldLabel>
+              <Textarea
+                id="description"
+                name="description"
+                rows={5}
+                defaultValue={event.description}
+              />
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="coverImage">Cover image URL</FieldLabel>
+              <Input
+                id="coverImage"
+                name="coverImage"
+                type="url"
+                inputMode="url"
+                placeholder="https://…"
+                defaultValue={event.coverImage}
+              />
+              <FieldDescription>
+                The poster at the top of the event page. It is shown whole, so artwork
+                with the name and dates on it works well.
+              </FieldDescription>
+            </Field>
+          </FieldGroup>
+        </FieldSet>
+
+        <FieldSet>
+          <FieldLegend>Schedule</FieldLegend>
+          <ScheduleFields
+            defaultStartsAtLocal={event.startsAtLocal}
+            defaultEndsAtLocal={event.endsAtLocal}
+            defaultTimezone={event.timezone}
           />
-        </div>
-        <div>
-          <label htmlFor="timezone" className="block text-sm font-medium">Timezone</label>
-          <input id="timezone" name="timezone" defaultValue={event.timezone} className={field} />
-          <p className="mt-1 text-xs text-muted-foreground">
-            The time above is the time at the venue.
-          </p>
-        </div>
-      </div>
+        </FieldSet>
 
-      <div>
-        <label htmlFor="description" className="block text-sm font-medium">Description</label>
-        <textarea id="description" name="description" rows={4} defaultValue={event.description} className={field} />
-      </div>
-
-      <div className="flex items-center gap-3">
-        <Submit label="Save event" />
-        <Feedback state={state} />
-      </div>
+        <Field orientation="horizontal">
+          <Submit label="Save event" />
+          <Feedback state={state} />
+        </Field>
+      </FieldGroup>
     </form>
   );
 }
@@ -142,6 +159,8 @@ export function EventForm({ event }: { event: EventFormValues }) {
 export function StatusForm({ id, status }: { id: string; status: string }) {
   const [state, action] = useActionState(setEventStatus, initial);
 
+  // Only the transitions that make sense from here. "Publish" on an already-live event
+  // is not a button anyone needs, and offering it invites a pointless round trip.
   const next =
     status === "published"
       ? [
@@ -156,17 +175,17 @@ export function StatusForm({ id, status }: { id: string; status: string }) {
         : [{ value: "published", label: "Publish" }];
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-wrap items-center gap-2">
       {next.map((option) => (
         <form key={option.value} action={action}>
           <input type="hidden" name="id" value={id} />
           <input type="hidden" name="status" value={option.value} />
-          <button
-            type="submit"
-            className="rounded-lg border border-border px-3 py-2 text-sm font-medium"
-          >
-            {option.label}
-          </button>
+          <Submit
+            label={option.label}
+            pendingLabel="Updating…"
+            variant={option.value === "published" ? "default" : "outline"}
+            size="sm"
+          />
         </form>
       ))}
       <Feedback state={state} />
@@ -192,50 +211,65 @@ export function TierForm({
   const [state, action] = useActionState(saveTier, initial);
 
   return (
-    <form action={action} className="space-y-3">
+    <form action={action}>
       <input type="hidden" name="eventId" value={eventId} />
       {tier?.id ? <input type="hidden" name="id" value={tier.id} /> : null}
 
-      <div className="grid gap-3 sm:grid-cols-4">
-        <div className="sm:col-span-2">
-          <label className="block text-xs font-medium text-muted-foreground">Name</label>
-          <input name="name" defaultValue={tier?.name ?? ""} required className={field} />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-muted-foreground">Price (GH₵)</label>
-          <input
-            name="priceGhs"
-            type="number"
-            step="0.01"
-            min="0.01"
-            defaultValue={tier?.priceGhs ?? ""}
-            required
-            className={field}
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-muted-foreground">Capacity</label>
-          <input
-            name="capacity"
-            type="number"
-            step="1"
-            min="1"
-            defaultValue={tier?.capacity ?? ""}
-            required
-            className={field}
-          />
-        </div>
-      </div>
+      <FieldGroup>
+        <div className="grid gap-6 sm:grid-cols-4">
+          <Field className="sm:col-span-2">
+            <FieldLabel htmlFor={`name-${tier?.id ?? "new"}`}>Name</FieldLabel>
+            <Input
+              id={`name-${tier?.id ?? "new"}`}
+              name="name"
+              defaultValue={tier?.name ?? ""}
+              required
+            />
+          </Field>
 
-      <div>
-        <label className="block text-xs font-medium text-muted-foreground">Description</label>
-        <input name="description" defaultValue={tier?.description ?? ""} className={field} />
-      </div>
+          <Field>
+            <FieldLabel htmlFor={`price-${tier?.id ?? "new"}`}>Price (GHâµ)</FieldLabel>
+            <Input
+              id={`price-${tier?.id ?? "new"}`}
+              name="priceGhs"
+              type="number"
+              step="0.01"
+              min="0.01"
+              inputMode="decimal"
+              defaultValue={tier?.priceGhs ?? ""}
+              required
+            />
+          </Field>
 
-      <div className="flex items-center gap-3">
-        <Submit label={tier?.id ? "Save tier" : "Add tier"} />
-        <Feedback state={state} />
-      </div>
+          <Field>
+            <FieldLabel htmlFor={`cap-${tier?.id ?? "new"}`}>Capacity</FieldLabel>
+            <Input
+              id={`cap-${tier?.id ?? "new"}`}
+              name="capacity"
+              type="number"
+              step="1"
+              min="1"
+              inputMode="numeric"
+              defaultValue={tier?.capacity ?? ""}
+              required
+            />
+          </Field>
+        </div>
+
+        <Field>
+          <FieldLabel htmlFor={`desc-${tier?.id ?? "new"}`}>Description</FieldLabel>
+          <Input
+            id={`desc-${tier?.id ?? "new"}`}
+            name="description"
+            defaultValue={tier?.description ?? ""}
+          />
+        </Field>
+
+        <Field orientation="horizontal">
+          <Submit label={tier?.id ? "Save tier" : "Add tier"} size="sm" />
+          <Feedback state={state} />
+        </Field>
+      </FieldGroup>
     </form>
   );
 }
@@ -245,9 +279,7 @@ export function DeactivateTierButton({ id }: { id: string }) {
   return (
     <form action={action} className="flex items-center gap-2">
       <input type="hidden" name="id" value={id} />
-      <button type="submit" className="text-sm text-muted-foreground underline hover:text-foreground">
-        Remove from sale
-      </button>
+      <Submit label="Remove from sale" pendingLabel="Removingâ¦" variant="ghost" size="sm" />
       <Feedback state={state} />
     </form>
   );

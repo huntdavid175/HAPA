@@ -17,7 +17,8 @@
     "check:checkout": "node --env-file=.env.local scripts/check-checkout.mts",
     "check:phone": "node scripts/check-phone.mts",
     "check:webhook": "node --env-file=.env.local scripts/check-webhook.mts",
-    "check:orders": "node --env-file=.env.local scripts/check-orders.mts"
+    "check:orders": "node --env-file=.env.local scripts/check-orders.mts",
+    "reset:password": "node --env-file=.env.local scripts/reset-password.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -25,10 +26,12 @@
     "@supabase/supabase-js": "^2.116.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
+    "date-fns": "^4.4.0",
     "lucide-react": "^1.47.0",
     "next": "16.3.6",
     "qrcode": "^1.5.4",
     "react": "19.2.8",
+    "react-day-picker": "^10.0.1",
     "react-dom": "19.2.8",
     "server-only": "^0.0.1",
     "shadcn": "^4.21.0",

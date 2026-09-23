@@ -1,11 +1,19 @@
-import { formatEventDate, formatEventTime, formatPesewas } from "@/lib/format";
+import {
+  formatEventDateRange,
+  formatEventTime,
+  formatPesewas,
+} from "@/lib/format";
 import { isFullyUnavailable, type EventWithTiers } from "@/lib/events";
 import { paymentsEnabled } from "@/lib/env";
 import { TierCard } from "./tier-card";
 import { TicketPicker } from "./ticket-picker";
 import { EventHero } from "./event-hero";
 import { AboutText } from "./about-text";
-import { TicketDrawer, OpenTicketsButton } from "./ticket-drawer";
+import {
+  TicketSheetProvider,
+  TicketSheet,
+  OpenTicketsButton,
+} from "./ticket-drawer";
 
 /**
  * The buyer's first screen — usually reached by scanning a QR on a poster or tapping a
@@ -44,105 +52,134 @@ export function EventView({ event }: { event: EventWithTiers }) {
   );
 
   return (
-    <main className="theme-night min-h-dvh bg-background pb-28 text-foreground lg:pb-20">
-      {/* A trigger that cannot open anything is worse than no trigger, so the sheet's
+    <TicketSheetProvider>
+      <main className="theme-night min-h-dvh bg-background pb-28 text-foreground lg:pb-20">
+        {/* A trigger that cannot open anything is worse than no trigger, so the sheet's
           buttons are hidden without JavaScript and the tiers render inline instead. */}
-      <noscript>
-        <style>{`.js-only{display:none!important}.noscript-tiers{display:block!important}`}</style>
-      </noscript>
+        <noscript>
+          <style>{`.js-only{display:none!important}.noscript-tiers{display:block!important}`}</style>
+        </noscript>
 
-      <div className="mx-auto w-full max-w-5xl">
-        <EventHero src={event.cover_image} eventName={event.name} />
-      </div>
+        <div className="mx-auto w-full max-w-5xl">
+          <EventHero src={event.cover_image} eventName={event.name} />
+        </div>
 
-      <div className="mx-auto w-full max-w-5xl px-6 sm:px-8">
-        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_17rem] lg:items-start lg:gap-x-14">
-          <header className="pt-7 lg:col-start-1 lg:row-start-1">
-            <h1 className={`text-balance break-words ${titleClass(event.name)}`}>
-              {event.name}
-            </h1>
+        <div className="mx-auto w-full max-w-5xl px-6 sm:px-8">
+          <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_17rem] lg:items-start lg:gap-x-14">
+            <header className="pt-7 lg:col-start-1 lg:row-start-1">
+              <h1
+                className={`text-balance break-words ${titleClass(event.name)}`}
+              >
+                {event.name}
+              </h1>
 
-            {event.venue ? (
-              <p className="mt-5 flex items-start gap-2.5 text-[0.95rem] text-muted-foreground">
-                <PinIcon />
-                {event.venue}
-              </p>
-            ) : null}
-
-            {event.description ? (
-              <div className="mt-7 max-w-[62ch]">
-                <AboutText text={event.description} />
-              </div>
-            ) : null}
-          </header>
-
-          {/* Mobile: in the flow under the description. Desktop: a sticky rail. */}
-          <div className="mt-10 lg:sticky lg:top-10 lg:col-start-2 lg:row-start-1 lg:mt-8 lg:self-start">
-            <dl className="divide-y divide-border border-y border-border">
-              <Fact label="Date">{formatEventDate(event.starts_at, event.timezone)}</Fact>
-              <Fact label="Doors">{formatEventTime(event.starts_at, event.timezone)}</Fact>
-
-              {/* Only when the organiser actually set an end — inventing one would put a
-                  time on the page that nobody committed to. */}
-              {event.ends_at ? (
-                <Fact label="Ends">{formatEventTime(event.ends_at, event.timezone)}</Fact>
+              {event.venue ? (
+                <p className="mt-5 flex items-start gap-2.5 text-[0.95rem] text-muted-foreground">
+                  <PinIcon />
+                  {event.venue}
+                </p>
               ) : null}
-            </dl>
 
-            {/* Desktop's price + buy pair. The phone gets the fixed bar at the bottom. */}
-            <div className="mt-7 hidden lg:block">
-              <PriceLabel cheapest={cheapest} />
-              <div className="mt-4">
-                <Cta
-                  checkoutOpen={checkoutOpen}
-                  soldOut={soldOut}
-                  salesClosed={salesClosed}
-                  block
-                />
+              {event.description ? (
+                <div className="mt-7 max-w-[62ch]">
+                  <AboutText text={event.description} />
+                </div>
+              ) : null}
+            </header>
+
+            {/* Mobile: in the flow under the description. Desktop: a sticky rail. */}
+            <div className="mt-10 lg:sticky lg:top-10 lg:col-start-2 lg:row-start-1 lg:mt-8 lg:self-start">
+              <dl className="divide-y divide-border border-y border-border">
+                <Fact label="Date">
+                  {formatEventDateRange(event.starts_at, event.ends_at, event.timezone)}
+                </Fact>
+                <Fact label="Doors open">
+                  {formatEventTime(event.starts_at, event.timezone)}
+                </Fact>
+
+                {/* Only when the organiser actually set an end — inventing one would put a
+                  time on the page that nobody committed to. */}
+                {event.ends_at ? (
+                  <Fact label="Doors close">
+                    {formatEventTime(event.ends_at, event.timezone)}
+                  </Fact>
+                ) : null}
+              </dl>
+
+              {/* Desktop's price + buy pair. The phone gets the fixed bar at the bottom. */}
+              <div className="mt-7 hidden lg:block">
+                <PriceLabel cheapest={cheapest} />
+                <div className="mt-4">
+                  <Cta
+                    checkoutOpen={checkoutOpen}
+                    soldOut={soldOut}
+                    salesClosed={salesClosed}
+                    block
+                  />
+                </div>
               </div>
             </div>
           </div>
+
+          {/* Hidden unless JavaScript is off, where it is the only way to see prices. */}
+          <section className="noscript-tiers mt-12 hidden">
+            <h2 className="text-sm font-semibold text-muted-foreground">
+              Tickets
+            </h2>
+            <div className="mt-5">
+              {unavailableNotice ? (
+                <Notice>{unavailableNotice}</Notice>
+              ) : (
+                tierList
+              )}
+            </div>
+          </section>
         </div>
 
-        {/* Hidden unless JavaScript is off, where it is the only way to see prices. */}
-        <section className="noscript-tiers mt-12 hidden">
-          <h2 className="text-sm font-semibold text-muted-foreground">Tickets</h2>
-          <div className="mt-5">
-            {unavailableNotice ? <Notice>{unavailableNotice}</Notice> : tierList}
-          </div>
-        </section>
-      </div>
-
-      <TicketDrawer title={unavailableNotice ? "Tickets" : "Choose your ticket"}>
-        {unavailableNotice ? (
-          <p className="pb-2 text-sm text-muted-foreground">{unavailableNotice}</p>
-        ) : (
-          /* The picker renders whether or not Paystack is configured. Working out what
+        <TicketSheet
+          title={unavailableNotice ? "Tickets" : "Choose your ticket"}
+          description={
+            unavailableNotice
+              ? "Why tickets are not available."
+              : "Pick how many of each you want. Nothing is charged until you pay."
+          }
+        >
+          {unavailableNotice ? (
+            <p className="pb-2 text-sm text-muted-foreground">
+              {unavailableNotice}
+            </p>
+          ) : (
+            /* The picker renders whether or not Paystack is configured. Working out what
              the night costs is useful on its own, and a list you cannot touch invites
              taps that do nothing. Only the pay step is gated. */
-          <TicketPicker
-            eventId={event.id}
-            checkoutOpen={checkoutOpen}
-            tiers={event.tiers.map((tier) => ({
-              id: tier.id,
-              name: tier.name,
-              description: tier.description,
-              pricePesewas: tier.price_pesewas,
-              available: tier.available,
-              unavailableReason: tier.unavailableReason,
-            }))}
-          />
-        )}
-      </TicketDrawer>
+            <TicketPicker
+              eventId={event.id}
+              checkoutOpen={checkoutOpen}
+              tiers={event.tiers.map((tier) => ({
+                id: tier.id,
+                name: tier.name,
+                description: tier.description,
+                pricePesewas: tier.price_pesewas,
+                available: tier.available,
+                unavailableReason: tier.unavailableReason,
+              }))}
+            />
+          )}
+        </TicketSheet>
 
-      {/* Phones only — the desktop rail already carries the price and the button. */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 px-6 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md lg:hidden">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-5">
-          <PriceLabel cheapest={cheapest} />
-          <Cta checkoutOpen={checkoutOpen} soldOut={soldOut} salesClosed={salesClosed} />
+        {/* Phones only — the desktop rail already carries the price and the button. */}
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 px-6 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md lg:hidden">
+          <div className="mx-auto flex max-w-5xl items-center justify-between gap-5">
+            <PriceLabel cheapest={cheapest} />
+            <Cta
+              checkoutOpen={checkoutOpen}
+              soldOut={soldOut}
+              salesClosed={salesClosed}
+            />
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </TicketSheetProvider>
   );
 }
 
@@ -220,17 +257,29 @@ function Cta({
   );
 }
 
-function Fact({ label, children }: { label: string; children: React.ReactNode }) {
+function Fact({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex items-baseline justify-between gap-5 py-3.5">
       <dt className="shrink-0 text-sm text-muted-foreground">{label}</dt>
-      <dd className="text-right text-sm font-semibold text-pretty">{children}</dd>
+      <dd className="text-right text-sm font-semibold text-pretty">
+        {children}
+      </dd>
     </div>
   );
 }
 
 function Notice({ children }: { children: React.ReactNode }) {
-  return <p className="border-l-2 border-border pl-4 text-sm text-muted-foreground">{children}</p>;
+  return (
+    <p className="border-l-2 border-border pl-4 text-sm text-muted-foreground">
+      {children}
+    </p>
+  );
 }
 
 function PinIcon() {

@@ -1,5 +1,14 @@
 import type { Metadata } from "next";
 
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { createClient } from "@/lib/supabase/server";
 import { formatPesewas } from "@/lib/format";
 import { utcIsoToLocalInput } from "@/lib/datetime";
@@ -35,6 +44,9 @@ export default async function EventAdminPage() {
         venue: event.venue,
         coverImage: event.cover_image ?? "",
         startsAtLocal: utcIsoToLocalInput(event.starts_at, event.timezone),
+        endsAtLocal: event.ends_at
+          ? utcIsoToLocalInput(event.ends_at, event.timezone)
+          : "",
         timezone: event.timezone,
       }
     : {
@@ -44,6 +56,7 @@ export default async function EventAdminPage() {
         venue: "",
         coverImage: "",
         startsAtLocal: "",
+        endsAtLocal: "",
         timezone: "Africa/Accra",
       };
 
@@ -57,38 +70,50 @@ export default async function EventAdminPage() {
     : { data: [] };
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
-      <h1 className="text-xl font-bold sm:text-2xl">
-        {event ? "Event settings" : "Create your event"}
-      </h1>
-
-      {event ? (
-        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
-          <p className="text-sm">
-            Status: <span className="font-semibold">{event.status}</span>
+    <>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {event ? "Event settings" : "Create your event"}
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            What buyers see, when it runs, and what they can buy.
           </p>
-          <StatusForm id={event.id} status={event.status} />
         </div>
-      ) : null}
 
-      <section className="mt-8">
-        <EventForm event={defaults} />
-      </section>
+        {event ? (
+          <div className="flex items-center gap-3">
+            <Badge variant={event.status === "published" ? "default" : "secondary"}>
+              {event.status}
+            </Badge>
+            <StatusForm id={event.id} status={event.status} />
+          </div>
+        ) : null}
+      </div>
+
+      <Card>
+        <CardContent>
+          <EventForm event={defaults} />
+        </CardContent>
+      </Card>
 
       {event ? (
-        <section className="mt-10">
-          <h2 className="text-lg font-semibold">Ticket tiers</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Each tier has its own price and capacity, and sells out independently.
-          </p>
+        <Card>
+          <CardHeader>
+            <CardTitle>Ticket tiers</CardTitle>
+            <CardDescription>
+              Each tier has its own price and capacity, and sells out independently.
+            </CardDescription>
+          </CardHeader>
 
-          <ul className="mt-4 space-y-4">
-            {(tiers ?? []).map((tier) => (
-              <li key={tier.id} className="rounded-xl border border-border bg-card p-4">
-                <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <CardContent className="flex flex-col gap-6">
+            {(tiers ?? []).map((tier, i) => (
+              <div key={tier.id} className="flex flex-col gap-4">
+                {i > 0 ? <Separator /> : null}
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="font-medium">
                     {tier.name}{" "}
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-muted-foreground text-sm tabular-nums">
                       {formatPesewas(tier.price_pesewas)} · {tier.capacity} available
                     </span>
                   </p>
@@ -104,16 +129,25 @@ export default async function EventAdminPage() {
                     capacity: String(tier.capacity),
                   }}
                 />
-              </li>
+              </div>
             ))}
-          </ul>
-
-          <div className="mt-6 rounded-xl border border-dashed border-border p-4">
-            <h3 className="mb-3 font-medium">Add a tier</h3>
-            <TierForm eventId={event.id} />
-          </div>
-        </section>
+          </CardContent>
+        </Card>
       ) : null}
-    </main>
+
+      {event ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Add a tier</CardTitle>
+            <CardDescription>
+              A new price point. Existing sales are untouched.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <TierForm eventId={event.id} />
+          </CardContent>
+        </Card>
+      ) : null}
+    </>
   );
 }

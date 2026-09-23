@@ -154,6 +154,22 @@
       exists once
 - [x] **`<noscript>` fallback**: the sheet's trigger is hidden and the tiers render inline,
       so the page never becomes a dead end for anyone whose JavaScript fails
+- [x] **Replaced the hand-rolled `<dialog>` with shadcn's Base UI Drawer.** A drawer at
+      every width, not a dialog on desktop — capped at `max-w-xl` and centred there,
+      because a 1280px-wide bottom sheet holding three tier cards reads as broken
+- [x] Mobile gains swipe-to-dismiss, which the hand-rolled sheet never had. Kept an
+      explicit close button — Dialog ships one, Drawer does not, and not everyone can
+      make a swipe gesture
+- [x] Open state lives in context so the two triggers (fixed bar, desktop rail) drive one
+      sheet without duplicating the tier markup
+- [x] `body { position: relative }` per the Base UI docs — its overlay is absolutely
+      positioned and fails to cover iOS Safari's viewport after a scroll without it
+- [x] `theme-night` repeated on the sheet content: both render through a portal, which
+      lands them outside the event page's themed subtree
+- [x] Deleted 108 lines of hand-rolled sheet CSS the components now supersede
+- [x] **Verified by driving it**: bottom sheet on mobile / centred 512px panel on desktop,
+      focus moves into the popup and Tab stays inside, Escape closes, the close button
+      closes, a real touch swipe dismisses, and body scroll locks and releases each time
 - [x] **Verified by driving the browser**: open sets `open=true` and locks the body,
       Escape and backdrop-click both close and release it, focus lands inside the sheet,
       and the no-JS path was screenshotted with script execution disabled
@@ -378,6 +394,23 @@
 - [ ] Event settings, staff, broadcasts and share kit still use hand-rolled markup. They
       were migrated to the new tokens so they render correctly, but have not been
       recomposed onto shadcn primitives
+
+- [x] **Event settings rebuilt on shadcn.** `FieldSet`/`Field` groups inside Cards,
+      `Input`/`Textarea`/`Select`/`Checkbox`/`Button`, status as buttons beside a badge
+- [x] **Multi-day events.** A range `Calendar` in a `Popover` plus half-hour time
+      `Select`s and a timezone `Select`. 7–9 October is one selection, and an end before
+      a start is not expressible
+- [x] `ends_at` is finally written — the column existed from day one but the form had no
+      field for it, which is why a three-day festival rendered as a single night
+- [x] The end is **not optional on a multi-day range**: the span is the information, so
+      the checkbox only governs a same-day end time and is checked and disabled otherwise
+- [x] The form posts `YYYY-MM-DDTHH:mm` hidden fields so `localInputToUtcIso` stays the
+      single tested place timezone conversion happens
+- [x] Backwards ranges are caught in the action with a readable message before the
+      `events_ends_after_starts` constraint turns them into an opaque error
+- [x] **Verified**: 7 Oct 20:00 → 9 Oct 23:00 round-trips through UTC and back unchanged,
+      persists, spans 3 days, and the database rejects it reversed. Driven in the browser:
+      clicking 7 then 9 fills both hidden fields and marks start/middle/end
 
 ## Phase 9 — Hardening
 

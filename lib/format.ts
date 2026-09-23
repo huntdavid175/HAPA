@@ -28,6 +28,45 @@ export function formatEventDate(iso: string, timeZone: string): string {
   }).format(new Date(iso));
 }
 
+/** The calendar day at the venue, as `YYYY-MM-DD`. */
+function venueDay(iso: string, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone,
+  }).format(new Date(iso));
+}
+
+/**
+ * One date, or a span when the event runs across several days.
+ *
+ * `formatRange` collapses the parts the two dates share, so 7–9 October reads
+ * "7 – 9 October 2026" rather than repeating the month and year. It also handles the
+ * awkward cases — across a month or a new year — without a pile of conditionals here.
+ *
+ * Whether it spans is decided by the *calendar day at the venue*, not by elapsed hours:
+ * a night that runs 9pm to 2am is one event, and would otherwise be advertised as two.
+ */
+export function formatEventDateRange(
+  startsAt: string,
+  endsAt: string | null,
+  timeZone: string,
+): string {
+  if (!endsAt || venueDay(startsAt, timeZone) === venueDay(endsAt, timeZone)) {
+    return formatEventDate(startsAt, timeZone);
+  }
+
+  // The weekday is dropped for a span — "Wednesday 7 – Friday 9 October" is a mouthful,
+  // and the dates are what someone books travel around.
+  return new Intl.DateTimeFormat("en-GH", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone,
+  }).formatRange(new Date(startsAt), new Date(endsAt));
+}
+
 export function formatEventTime(iso: string, timeZone: string): string {
   const parts = new Intl.DateTimeFormat("en-GH", {
     hour: "numeric",

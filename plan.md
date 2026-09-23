@@ -40,8 +40,8 @@
 - [ ] Create Supabase project — preview/staging *(needs your account)*
 - [x] Real Supabase keys in `.env.local` (`sb_publishable_…` / `sb_secret_…` — the legacy
       anon / service_role JWTs are deprecated end of 2026 and `lib/env.ts` rejects them)
-- [ ] Real **Paystack test** keys in `.env.local` — note: test keys do **not** require
-      business verification, so this is not blocked. Only going live is
+- [x] Real **Paystack test** keys in `.env.local`, and the same keys are already set on
+      the production deploy (an unsigned POST to the live webhook returns 401, not 500)
 - [ ] Wire Sentry (client + server) — use `onRequestError` in `instrumentation.ts`
 - [x] Production deployed at https://hapa-xi.vercel.app
 - [ ] Preview/staging env with its own Supabase project + Paystack test keys
@@ -251,7 +251,28 @@
 - [x] Redirect callback verifies for UX but issues nothing
 - [x] Late payment after stock ran out → money acknowledged, order flagged
       `needs_refund` with a reason, rather than silently swallowed
-- [ ] Register the webhook URL in the Paystack dashboard *(needs your account)*
+- [ ] Register the webhook URL in the Paystack dashboard *(needs your account)* —
+      `https://hapa-xi.vercel.app/api/webhooks/paystack`
+
+## Phase 4b — Paystack, live against the API ✅
+
+- [x] `npm run check:paystack` — 17 checks against the real Paystack API. Refuses to run
+      against a live key, and only initialises transactions; it never charges anything
+- [x] Confirmed on the actual account: the key authenticates, **GHS is enabled**,
+      `initialize` returns a `checkout.paystack.com` URL and echoes our reference, and a
+      **duplicate reference is rejected** — which is what stops two orders sharing a payment
+- [x] `verify` returns the amount in pesewas unchanged, currency GHS, and does not report
+      an uncharged or unknown reference as `success`
+- [x] **Full checkout driven in the browser**: picked a tier, filled the details, pressed
+      Pay, and landed on the real hosted checkout. The order was left `pending` with a
+      10-minute hold and **zero tickets issued** — the guarantee that only the webhook
+      issues tickets, demonstrated rather than asserted
+- [x] `check:webhook` now runs green with real keys on the server (it needs the key on the
+      *dev server*, not just the script)
+- [x] Payload shape confirmed against Paystack's docs: `charge.success` with
+      `data.reference`, `data.amount`, `data.currency`, `data.channel`
+- [ ] Register the webhook URL, then make one real test payment and confirm tickets are
+      issued and queued. That is the last unproven link in the chain
 
 ## Phase 5 — Ticket page + delivery
 
@@ -494,7 +515,9 @@
 | `check:gate` | 18 | **10 concurrent scans of one QR → 1 admitted** |
 | `check:checkout` | 21 | **10 buyers racing for 5 tickets → exactly 5 sold** |
 | `check:webhook` | 12 | signature, idempotency, malformed payloads |
+| `check:paystack` | 17 | **the real Paystack API**: auth, GHS, initialize, verify, duplicate reference |
 | `check:orders` | 14 | **voiding returns the seat to sale; an admitted ticket cannot be voided** |
 
-Not covered without live Paystack test keys: `transaction/initialize` and
-`transaction/verify`. Everything either side of those two calls is checked.
+`check:paystack` closes the gap that used to sit here: `transaction/initialize` and
+`transaction/verify` are now exercised against the real API, so every call in the payment
+path is covered.

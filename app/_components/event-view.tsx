@@ -203,12 +203,12 @@ function titleClass(name: string): string {
   const n = name.trim().length;
 
   if (n <= 24) {
-    return "text-5xl leading-[0.9] font-extrabold tracking-[-0.03em] [font-stretch:112%] sm:text-6xl lg:text-7xl";
+    return "text-[2.25rem] leading-[0.95] font-extrabold tracking-[-0.03em] [font-stretch:110%] sm:text-5xl lg:text-6xl";
   }
   if (n <= 55) {
-    return "text-[2.1rem] leading-[0.95] font-extrabold tracking-[-0.025em] [font-stretch:105%] sm:text-5xl lg:text-6xl";
+    return "text-[1.75rem] leading-[1] font-extrabold tracking-[-0.02em] [font-stretch:105%] sm:text-4xl lg:text-5xl";
   }
-  return "text-[1.75rem] leading-[1.1] font-bold tracking-[-0.01em] sm:text-[2.1rem] lg:text-[2.5rem]";
+  return "text-[1.375rem] leading-[1.15] font-bold tracking-[-0.01em] sm:text-[1.625rem] lg:text-3xl";
 }
 
 function PriceLabel({ cheapest }: { cheapest: number | null }) {

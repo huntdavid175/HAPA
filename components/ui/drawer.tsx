@@ -40,13 +40,21 @@ function Drawer({
 
   return (
     <DrawerContext.Provider value={contextValue}>
-      <DrawerPrimitive.Root
-        data-slot="drawer"
-        modal={modal}
-        snapPoints={snapPoints}
-        swipeDirection={swipeDirection}
-        {...props}
-      />
+      {/* A bottom sheet is fixed to the bottom of the *layout* viewport, and neither iOS
+          Safari nor Android Chrome shrinks that when the software keyboard opens — so the
+          browser's own "scroll the focused field into view" moves the page underneath and
+          leaves the field behind the keyboard. This provider measures the visual viewport
+          instead, adds scroll slack below the field and animates it into the visible band.
+          Applied here rather than per drawer so any drawer holding an input gets it. */}
+      <DrawerPrimitive.VirtualKeyboardProvider>
+        <DrawerPrimitive.Root
+          data-slot="drawer"
+          modal={modal}
+          snapPoints={snapPoints}
+          swipeDirection={swipeDirection}
+          {...props}
+        />
+      </DrawerPrimitive.VirtualKeyboardProvider>
     </DrawerContext.Provider>
   )
 }

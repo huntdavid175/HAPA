@@ -33,6 +33,20 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  /**
+   * Shrink the layout viewport when the software keyboard opens, rather than letting the
+   * keyboard sit over the page.
+   *
+   * The checkout form lives in a bottom sheet pinned to the bottom of that viewport. The
+   * default (`resizes-visual`) leaves the sheet's lower half — the email field and the
+   * pay button — underneath the keyboard, and the browser's own scroll-into-view cannot
+   * help because it scrolls the page while the sheet is `position: fixed`.
+   *
+   * Android Chrome honours this. iOS Safari ignores it entirely, which is why the drawer
+   * also carries Base UI's `VirtualKeyboardProvider` — that one measures the visual
+   * viewport directly and works everywhere.
+   */
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

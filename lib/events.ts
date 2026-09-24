@@ -57,7 +57,8 @@ async function withTiers(event: EventRow): Promise<EventWithTiers> {
     .select("*")
     .eq("event_id", event.id)
     .eq("active", true)
-    .order("position", { ascending: true });
+    .order("position", { ascending: true })
+    .order("created_at", { ascending: true });
   if (error) throw error;
 
   // Counting sold and held stock means reading `tickets` and `orders`, which anon has no

@@ -283,6 +283,7 @@ export type Database = {
           buyer_name: string
           buyer_phone: string
           created_at: string
+          currency: string
           event_id: string
           hold_expires_at: string
           id: string
@@ -301,6 +302,7 @@ export type Database = {
           buyer_name: string
           buyer_phone: string
           created_at?: string
+          currency?: string
           event_id: string
           hold_expires_at: string
           id?: string
@@ -319,6 +321,7 @@ export type Database = {
           buyer_name?: string
           buyer_phone?: string
           created_at?: string
+          currency?: string
           event_id?: string
           hold_expires_at?: string
           id?: string
@@ -373,6 +376,7 @@ export type Database = {
           benefits: string[]
           capacity: number
           created_at: string
+          currency: string
           description: string
           event_id: string
           highlight: boolean
@@ -390,6 +394,7 @@ export type Database = {
           benefits?: string[]
           capacity: number
           created_at?: string
+          currency?: string
           description?: string
           event_id: string
           highlight?: boolean
@@ -407,6 +412,7 @@ export type Database = {
           benefits?: string[]
           capacity?: number
           created_at?: string
+          currency?: string
           description?: string
           event_id?: string
           highlight?: boolean
@@ -621,6 +627,7 @@ export type Database = {
           p_reference: string
         }
         Returns: {
+          currency: string
           order_id: string
           total_pesewas: number
         }[]

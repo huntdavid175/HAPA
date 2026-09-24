@@ -74,7 +74,7 @@ export default async function OrderDetailPage({ params }: PageProps<"/admin/orde
           </Badge>
           {order.channel ? <Badge variant="outline">{order.channel}</Badge> : null}
           <span className="font-semibold tabular-nums">
-            {formatPesewas(order.totalPesewas)}
+            {formatPesewas(order.totalPesewas, order.currency)}
           </span>
         </div>
       </div>
@@ -112,7 +112,7 @@ export default async function OrderDetailPage({ params }: PageProps<"/admin/orde
                   {item.quantity} × {item.tierName}
                 </span>
                 <span className="text-muted-foreground tabular-nums">
-                  {formatPesewas(item.unitPricePesewas * item.quantity)}
+                  {formatPesewas(item.unitPricePesewas * item.quantity, order.currency)}
                 </span>
               </div>
             ))}

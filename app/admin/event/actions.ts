@@ -7,6 +7,7 @@ import { requireAdmin } from "@/lib/auth";
 import { sanitizeRichText, isRichTextEmpty } from "@/lib/rich-text";
 import { createClient } from "@/lib/supabase/server";
 import { localInputToUtcIso } from "@/lib/datetime";
+import { CURRENCIES } from "@/lib/currency";
 
 export type ActionState = { error: string | null; ok: string | null };
 
@@ -175,7 +176,8 @@ const tierSchema = z.object({
   // The claim is the organiser's own words, so it is free text — but it sits in a pill
   // beside the tier name and wraps badly past a couple of words.
   badge: z.string().trim().max(24, "Keep the badge to a couple of words").default(""),
-  // Entered in cedis; stored as integer pesewas.
+  currency: z.enum(CURRENCIES, "Choose cedis or US dollars"),
+  // Entered in major units of `currency`; stored as integer minor units (pesewas/cents).
   priceGhs: z.coerce.number().positive("Price must be more than zero").max(100000),
   capacity: z.coerce.number().int().positive("Capacity must be at least 1").max(1000000),
 });
@@ -194,6 +196,7 @@ export async function saveTier(
     benefits: formData.get("benefits") ?? "",
     highlight: formData.get("highlight") ?? false,
     badge: formData.get("badge") ?? "",
+    currency: formData.get("currency") || "GHS",
     priceGhs: formData.get("priceGhs"),
     capacity: formData.get("capacity"),
   });
@@ -201,8 +204,18 @@ export async function saveTier(
     return { error: parsed.error.issues[0]?.message ?? "Check the tier", ok: null };
   }
 
-  const { id, eventId, name, description, benefits, highlight, badge, priceGhs, capacity } =
-    parsed.data;
+  const {
+    id,
+    eventId,
+    name,
+    description,
+    benefits,
+    highlight,
+    badge,
+    currency,
+    priceGhs,
+    capacity,
+  } = parsed.data;
 
   // Round at the boundary so 35.005 can never become a fractional pesewa.
   const pricePesewas = Math.round(priceGhs * 100);
@@ -216,13 +229,30 @@ export async function saveTier(
     highlight,
     // Empty means "highlighted, but making no claim", which is a real choice.
     badge: badge || null,
+    // Existing orders snapshot their own currency, so changing it here never rewrites
+    // what a past buyer paid.
+    currency,
     price_pesewas: pricePesewas,
     capacity,
   };
 
-  const { error } = id
-    ? await supabase.from("ticket_tiers").update(payload).eq("id", id)
-    : await supabase.from("ticket_tiers").insert(payload);
+  let error;
+  if (id) {
+    ({ error } = await supabase.from("ticket_tiers").update(payload).eq("id", id));
+  } else {
+    // A new tier joins the end of the list. Left at the column default of 0 it would tie
+    // with every other tier, and the order buyers see would be whatever Postgres chose.
+    const { data: last } = await supabase
+      .from("ticket_tiers")
+      .select("position")
+      .eq("event_id", eventId)
+      .order("position", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    ({ error } = await supabase
+      .from("ticket_tiers")
+      .insert({ ...payload, position: (last?.position ?? -1) + 1 }));
+  }
 
   if (error) {
     if (error.code === "23505") {
@@ -258,4 +288,38 @@ export async function deactivateTier(
   revalidatePath("/admin/event");
   revalidatePath("/");
   return { error: null, ok: "Tier removed from sale" };
+}
+
+const reorderSchema = z.object({
+  eventId: z.uuid(),
+  ids: z.array(z.uuid()).min(1).max(100),
+});
+
+/**
+ * Writes the admin's drag order to `position`, which is the order the public page reads.
+ * Rows are updated one by one rather than in a transaction: a partial failure leaves a
+ * mixed order, never a broken one, and the next drag rewrites every position anyway.
+ */
+export async function reorderTiers(eventId: string, ids: string[]): Promise<ActionState> {
+  await requireAdmin();
+
+  const parsed = reorderSchema.safeParse({ eventId, ids });
+  if (!parsed.success) return { error: "That order could not be saved", ok: null };
+
+  const supabase = await createClient();
+  const results = await Promise.all(
+    parsed.data.ids.map((id, position) =>
+      supabase
+        .from("ticket_tiers")
+        .update({ position })
+        .eq("id", id)
+        .eq("event_id", parsed.data.eventId),
+    ),
+  );
+  const failed = results.find((r) => r.error);
+  if (failed?.error) return { error: failed.error.message, ok: null };
+
+  revalidatePath("/admin/event");
+  revalidatePath("/");
+  return { error: null, ok: "Order saved" };
 }

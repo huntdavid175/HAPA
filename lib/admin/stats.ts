@@ -1,11 +1,14 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { toCurrency, type Currency } from "@/lib/currency";
+import type { Price } from "@/lib/pricing";
 
 export type TierStat = {
   id: string;
   name: string;
   pricePesewas: number;
+  currency: Currency;
   capacity: number;
   sold: number;
   held: number;
@@ -17,6 +20,7 @@ export type RecentOrder = {
   buyerName: string;
   buyerPhone: string;
   totalPesewas: number;
+  currency: Currency;
   createdAt: string;
   channel: string | null;
   ticketCount: number;
@@ -32,7 +36,11 @@ export type EventStats = {
   ticketsSold: number;
   checkedIn: number;
   paidOrders: number;
-  revenuePesewas: number;
+  /**
+   * One entry per paid order, in that order's currency. Kept apart rather than summed:
+   * cedis and dollars do not add up, so `formatTotals` shows one total per currency.
+   */
+  revenue: Price[];
   tiers: TierStat[];
   recentOrders: RecentOrder[];
   failedDeliveries: number;
@@ -63,9 +71,10 @@ export async function getEventStats(): Promise<EventStats | null> {
     await Promise.all([
       supabase
         .from("ticket_tiers")
-        .select("id, name, price_pesewas, capacity, position")
+        .select("id, name, price_pesewas, currency, capacity, position")
         .eq("event_id", event.id)
-        .order("position", { ascending: true }),
+        .order("position", { ascending: true })
+        .order("created_at", { ascending: true }),
       supabase.rpc("tier_availability", { p_event_id: event.id }),
       supabase
         .from("tickets")
@@ -79,12 +88,14 @@ export async function getEventStats(): Promise<EventStats | null> {
         .eq("status", "checked_in"),
       supabase
         .from("orders")
-        .select("total_pesewas")
+        .select("total_pesewas, currency")
         .eq("event_id", event.id)
         .eq("status", "paid"),
       supabase
         .from("orders")
-        .select("id, buyer_name, buyer_phone, total_pesewas, created_at, paystack_channel, tickets(id)")
+        .select(
+          "id, buyer_name, buyer_phone, total_pesewas, currency, created_at, paystack_channel, tickets(id)",
+        )
         .eq("event_id", event.id)
         .eq("status", "paid")
         .order("created_at", { ascending: false })
@@ -113,14 +124,17 @@ export async function getEventStats(): Promise<EventStats | null> {
     ticketsSold: tickets.count ?? 0,
     checkedIn: checkedIn.count ?? 0,
     paidOrders: orders.data?.length ?? 0,
-    // Integer arithmetic only — never sum money as floats.
-    revenuePesewas: (orders.data ?? []).reduce((sum, o) => sum + o.total_pesewas, 0),
+    revenue: (orders.data ?? []).map((o) => ({
+      pesewas: o.total_pesewas,
+      currency: toCurrency(o.currency),
+    })),
     tiers: (tiers.data ?? []).map((t) => {
       const a = availabilityByTier.get(t.id);
       return {
         id: t.id,
         name: t.name,
         pricePesewas: t.price_pesewas,
+        currency: toCurrency(t.currency),
         capacity: t.capacity,
         sold: a?.sold ?? 0,
         held: a?.held ?? 0,
@@ -132,6 +146,7 @@ export async function getEventStats(): Promise<EventStats | null> {
       buyerName: o.buyer_name,
       buyerPhone: o.buyer_phone,
       totalPesewas: o.total_pesewas,
+      currency: toCurrency(o.currency),
       createdAt: o.created_at,
       channel: o.paystack_channel,
       ticketCount: Array.isArray(o.tickets) ? o.tickets.length : 0,

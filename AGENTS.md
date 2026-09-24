@@ -15,8 +15,17 @@ Single-event ticketing for Ghana. Buyers never sign up; a ticket is an unguessab
 
 ## Decisions that are settled — don't relitigate
 
-- Money is **integer pesewas** everywhere, never floats. `formatPesewas` is the only place
-  it becomes a string.
+- Money is **integer minor units** everywhere, never floats. `formatPesewas(amount,
+  currency)` is the only place it becomes a string.
+- **Each tier has a currency, GHS or USD** (`lib/currency.ts`, mirrored by CHECK
+  constraints). `_pesewas` columns hold the minor unit of their row's currency — cents
+  for a USD tier — and the names predate the change. Orders snapshot their currency.
+- **One currency per order.** Paystack charges one currency per payment, so
+  `reserve_tickets` refuses a mixed order and returns the currency to charge; the cart
+  asks before switching rather than mixing. Never sum amounts across currencies —
+  `formatTotals` shows one total per currency.
+- USD checkouts are card only (mobile money is cedis only), and fail at Paystack until
+  USD is enabled on the account.
 - **Only the Paystack webhook issues tickets.** The redirect callback verifies for UX and
   issues nothing: mobile money often confirms after the buyer has closed the tab.
 - **Overselling is prevented in the database** (`reserve_tickets`, row locks in id order),
@@ -81,10 +90,16 @@ Pricing cards at the foot of the page, a drawer for the cart, and a rail (deskto
   drawer are `js-only`. The page still sells.
 - The rail and bar hide while the cards are in view and return once something is in the
   cart — `use-in-view.ts`, an IntersectionObserver.
-- Card heights are equalised by `items-stretch` on the grid. The highlighted tier lifts
-  with `lg:-mt-4 lg:mb-4`; **padding would make it genuinely taller** and desynchronise
-  the row. Heights are deliberately *not* equalised in the single-column mobile layout —
-  each card is its own grid row there, and forcing it only adds dead space.
+- Every card is the same size: `md:auto-rows-fr` makes every row as tall as the tallest
+  card, across rows as well as within one. The highlighted tier is marked only by border
+  colour — all cards carry `border-4`, the rest `border-transparent` — so it never
+  differs in size. A lift, extra padding or a thicker border on one card breaks that.
+- Each card is a ticket: body, then a `.plan-tear` perforation, then a stub with the
+  price and the action. The stub is one fixed height on every card (button, stepper and
+  sold-out label are all `h-13`; scarcity shares the price's line) so the tears line up.
+  Anything that adds a line to one stub knocks its tear out of level.
+  Heights are deliberately *not* equalised in the single-column mobile layout — each
+  card is its own grid row there, and forcing it only adds dead space.
 
 ## Styling
 

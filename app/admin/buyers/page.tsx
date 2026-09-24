@@ -4,6 +4,7 @@ import { DownloadIcon, SearchIcon, UsersIcon } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { formatPesewas } from "@/lib/format";
+import { toCurrency } from "@/lib/currency";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,7 +44,7 @@ export default async function BuyersPage({ searchParams }: PageProps<"/admin/buy
   let request = supabase
     .from("orders")
     .select(
-      "id, buyer_name, buyer_phone, buyer_email, total_pesewas, status, paystack_channel, created_at, tickets(id, status)",
+      "id, buyer_name, buyer_phone, buyer_email, total_pesewas, currency, status, paystack_channel, created_at, tickets(id, status)",
     )
     .order("created_at", { ascending: false })
     .limit(200);
@@ -162,7 +163,7 @@ export default async function BuyersPage({ searchParams }: PageProps<"/admin/buy
                         ) : null}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {formatPesewas(order.total_pesewas)}
+                        {formatPesewas(order.total_pesewas, toCurrency(order.currency))}
                       </TableCell>
                       <TableCell>
                         <Badge variant={statusVariant(order.status)}>

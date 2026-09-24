@@ -8,18 +8,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { createClient } from "@/lib/supabase/server";
 import { ensureRichText } from "@/lib/rich-text";
-import { formatPesewas } from "@/lib/format";
 import { utcIsoToLocalInput } from "@/lib/datetime";
-import {
-  EventForm,
-  StatusForm,
-  TierForm,
-  DeactivateTierButton,
-  type EventFormValues,
-} from "./forms";
+import { EventForm, StatusForm, type EventFormValues } from "./forms";
+import { TierList } from "./tier-list";
 
 export const metadata: Metadata = { title: "Event" };
 export const dynamic = "force-dynamic";
@@ -68,6 +61,7 @@ export default async function EventAdminPage() {
         .eq("event_id", event.id)
         .eq("active", true)
         .order("position", { ascending: true })
+        .order("created_at", { ascending: true })
     : { data: [] };
 
   return (
@@ -104,51 +98,12 @@ export default async function EventAdminPage() {
             <CardTitle>Ticket tiers</CardTitle>
             <CardDescription>
               Each tier has its own price and capacity, and sells out independently.
+              Drag to set the order buyers see them in.
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="flex flex-col gap-6">
-            {(tiers ?? []).map((tier, i) => (
-              <div key={tier.id} className="flex flex-col gap-4">
-                {i > 0 ? <Separator /> : null}
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="font-medium">
-                    {tier.name}{" "}
-                    <span className="text-muted-foreground text-sm tabular-nums">
-                      {formatPesewas(tier.price_pesewas)} · {tier.capacity} available
-                    </span>
-                  </p>
-                  <DeactivateTierButton id={tier.id} />
-                </div>
-                <TierForm
-                  eventId={event.id}
-                  tier={{
-                    id: tier.id,
-                    name: tier.name,
-                    description: tier.description,
-                    benefits: (tier.benefits ?? []).join("\n"),
-                    highlight: tier.highlight ?? false,
-                    badge: tier.badge ?? "",
-                    priceGhs: (tier.price_pesewas / 100).toFixed(2),
-                    capacity: String(tier.capacity),
-                  }}
-                />
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {event ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Add a tier</CardTitle>
-            <CardDescription>
-              A new price point. Existing sales are untouched.
-            </CardDescription>
-          </CardHeader>
           <CardContent>
-            <TierForm eventId={event.id} />
+            <TierList eventId={event.id} tiers={tiers ?? []} />
           </CardContent>
         </Card>
       ) : null}

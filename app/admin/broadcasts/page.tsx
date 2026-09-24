@@ -37,7 +37,8 @@ export default async function BroadcastsPage() {
       .select("id, name")
       .eq("event_id", event.id)
       .eq("active", true)
-      .order("position"),
+      .order("position")
+      .order("created_at"),
     supabase
       .from("broadcasts")
       .select("*")

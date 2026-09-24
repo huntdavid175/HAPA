@@ -1,17 +1,58 @@
+import type { Currency } from "@/lib/currency";
+
 /**
- * Display helpers. All money in this codebase is integer pesewas — these are the only
- * place it becomes a string, and it never becomes a float on the way.
+ * Display helpers. All money in this codebase is integer minor units — pesewas for GHS,
+ * cents for USD — and these are the only place it becomes a string. It never becomes a
+ * float on the way.
  */
 
-const GHS = new Intl.NumberFormat("en-GH", {
-  style: "currency",
-  currency: "GHS",
-  minimumFractionDigits: 2,
-});
+const formatters = new Map<Currency, Intl.NumberFormat>();
 
-/** 5000 → "GH₵50.00" */
-export function formatPesewas(pesewas: number): string {
-  return GHS.format(pesewas / 100);
+function formatter(currency: Currency): Intl.NumberFormat {
+  let f = formatters.get(currency);
+  if (!f) {
+    // en-GH for both, so dollars print as "US$" — a bare "$" is ambiguous to a Ghanaian
+    // buyer looking at a page that also shows cedis.
+    f = new Intl.NumberFormat("en-GH", { style: "currency", currency, minimumFractionDigits: 2 });
+    formatters.set(currency, f);
+  }
+  return f;
+}
+
+/** 5000 → "GH₵50.00"; 5000, "USD" → "US$50.00" */
+export function formatPesewas(pesewas: number, currency: Currency = "GHS"): string {
+  return formatter(currency).format(pesewas / 100);
+}
+
+/**
+ * 35000 → { currency: "GH₵", amount: "350", fraction: ".00" }
+ *
+ * The same string as `formatPesewas`, in pieces, for layouts that set the amount larger
+ * than the symbol and the pesewas. Comes from `formatToParts`, so it never disagrees with
+ * the formatted string about grouping or the symbol.
+ */
+export function formatPesewasParts(pesewas: number, currency: Currency = "GHS") {
+  let symbol = "";
+  let amount = "";
+  let fraction = "";
+  for (const part of formatter(currency).formatToParts(pesewas / 100)) {
+    if (part.type === "currency") symbol += part.value;
+    else if (part.type === "integer" || part.type === "group") amount += part.value;
+    else if (part.type === "decimal" || part.type === "fraction") fraction += part.value;
+  }
+  return { currency: symbol, amount, fraction };
+}
+
+/**
+ * Totals across orders in different currencies, one string per currency — never summed
+ * into one number, because cedis and dollars do not add up.
+ * [{GHS, 5000}, {USD, 2000}, {GHS, 1000}] → "GH₵60.00 + US$20.00"
+ */
+export function formatTotals(rows: { pesewas: number; currency: Currency }[]): string {
+  const sums = new Map<Currency, number>();
+  for (const row of rows) sums.set(row.currency, (sums.get(row.currency) ?? 0) + row.pesewas);
+  if (sums.size === 0) return formatPesewas(0);
+  return [...sums].map(([currency, total]) => formatPesewas(total, currency)).join(" + ");
 }
 
 /**

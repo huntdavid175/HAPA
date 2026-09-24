@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 import { getEventStats } from "@/lib/admin/stats";
-import { formatPesewas, formatEventDate, formatEventTime } from "@/lib/format";
+import { formatPesewas, formatTotals, formatEventDate, formatEventTime } from "@/lib/format";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -114,7 +114,7 @@ export default async function AdminOverviewPage() {
         <Stat label="Tickets sold" value={String(stats.ticketsSold)} icon={TicketIcon} />
         <Stat
           label="Revenue"
-          value={formatPesewas(stats.revenuePesewas)}
+          value={formatTotals(stats.revenue)}
           icon={BanknoteIcon}
         />
         <Stat label="Orders" value={String(stats.paidOrders)} icon={ReceiptTextIcon} />
@@ -149,7 +149,7 @@ export default async function AdminOverviewPage() {
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <span className="font-medium">{tier.name}</span>
                     <span className="text-muted-foreground text-sm tabular-nums">
-                      {formatPesewas(tier.pricePesewas)} · {tier.sold}/{tier.capacity}
+                      {formatPesewas(tier.pricePesewas, tier.currency)} · {tier.sold}/{tier.capacity}
                       {tier.held > 0 ? ` · ${tier.held} held` : ""}
                     </span>
                   </div>
@@ -202,7 +202,7 @@ export default async function AdminOverviewPage() {
                         <Badge variant="secondary">{order.ticketCount}</Badge>
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {formatPesewas(order.totalPesewas)}
+                        {formatPesewas(order.totalPesewas, order.currency)}
                       </TableCell>
                     </TableRow>
                   ))}

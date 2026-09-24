@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
 
     const { data: order } = await db
       .from("orders")
-      .select("id, total_pesewas, status")
+      .select("id, total_pesewas, currency, status")
       .eq("paystack_reference", reference)
       .maybeSingle();
 
@@ -108,7 +108,13 @@ export async function POST(request: NextRequest) {
       return new Response("Amount mismatch", { status: 200 });
     }
 
-    if (verified.currency !== "GHS") {
+    // 5000 cents is not 5000 pesewas. The amount check above is only meaningful once the
+    // currency matches too.
+    if (verified.currency !== order.currency) {
+      await db.from("orders").update({
+        needs_refund: true,
+        refund_reason: `Paid in ${verified.currency} but the order is in ${order.currency}`,
+      }).eq("id", order.id);
       await markProcessed(db, providerEventId, `Unexpected currency ${verified.currency}`);
       return new Response("Unexpected currency", { status: 200 });
     }

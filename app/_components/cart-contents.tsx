@@ -6,11 +6,15 @@ import { MinusIcon, PlusIcon, TicketIcon } from "lucide-react";
 
 import { startCheckout, type CheckoutState } from "@/app/checkout/actions";
 import { formatPesewas } from "@/lib/format";
+import type { Currency } from "@/lib/currency";
 import { useCart, MAX_PER_TIER } from "./cart";
+
+/** How the switch prompt names a currency — the way a buyer says it, not the ISO code. */
+const SPOKEN: Record<Currency, string> = { GHS: "cedis", USD: "US dollars" };
 
 const initial: CheckoutState = { error: null };
 
-function PayButton({ total }: { total: number }) {
+function PayButton({ total, currency }: { total: number; currency?: Currency }) {
   const { pending } = useFormStatus();
   return (
     <button
@@ -18,7 +22,7 @@ function PayButton({ total }: { total: number }) {
       disabled={pending || total === 0}
       className="w-full bg-cta px-6 py-3.5 text-[0.95rem] font-bold text-cta-foreground transition hover:brightness-95 focus-visible:ring-2 focus-visible:ring-cta focus-visible:ring-offset-4 focus-visible:ring-offset-background focus-visible:outline-none disabled:opacity-40"
     >
-      {pending ? "Taking you to payment…" : `Pay ${formatPesewas(total)}`}
+      {pending ? "Taking you to payment…" : `Pay ${formatPesewas(total, currency)}`}
     </button>
   );
 }
@@ -38,8 +42,20 @@ export function CartContents({
   checkoutOpen: boolean;
 }) {
   const [state, action] = useActionState(startCheckout, initial);
-  const { tiers, quantities, bumpQty, items, ticketCount, totalPesewas, setOpen } =
-    useCart();
+  const {
+    tiers,
+    quantities,
+    bumpQty,
+    items,
+    ticketCount,
+    totalPesewas,
+    currency,
+    switchTo,
+    confirmSwitch,
+    cancelSwitch,
+    setOpen,
+  } = useCart();
+  const cartCurrency = currency ?? undefined;
 
   const chosen = tiers.filter((tier) => (quantities[tier.id] ?? 0) > 0);
 
@@ -69,6 +85,36 @@ export function CartContents({
       <input type="hidden" name="eventId" value={eventId} />
       <input type="hidden" name="items" value={JSON.stringify(items)} />
 
+      {/* One payment is one currency. Rather than quietly dropping what the buyer
+          already chose, say why the new ticket is not in the cart and let them pick. */}
+      {switchTo && currency ? (
+        <div role="alert" className="mb-7 border border-cta p-5">
+          <p className="font-semibold">
+            {switchTo.name} is priced in {SPOKEN[switchTo.currency]}
+          </p>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            Your cart is in {SPOKEN[currency]}, and one payment can only be in one
+            currency. Pay for these first, or start again with {switchTo.name}.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={confirmSwitch}
+              className="bg-cta px-4 py-2.5 text-sm font-bold text-cta-foreground transition hover:brightness-95 focus-visible:ring-2 focus-visible:ring-cta focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
+            >
+              Switch to {switchTo.name}
+            </button>
+            <button
+              type="button"
+              onClick={cancelSwitch}
+              className="border border-border px-4 py-2.5 text-sm font-semibold transition hover:border-foreground"
+            >
+              Keep my cart
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {/* The same ticket shape the tiers use on the page: name and stepper on the left,
           price torn off behind the perforation, gold ring because it is in the cart.
           A plain list would have been lighter, but the stub is how a ticket looks here
@@ -88,7 +134,7 @@ export function CartContents({
                   {tier.name}
                 </h3>
                 <p className="mt-1.5 text-sm text-muted-foreground tabular-nums">
-                  {formatPesewas(tier.pricePesewas)} each
+                  {formatPesewas(tier.pricePesewas, tier.currency)} each
                 </p>
 
                 <div className="mt-4 flex items-center gap-4">
@@ -123,7 +169,7 @@ export function CartContents({
 
               <div className="flex flex-col items-center justify-center gap-1.5 border-l-2 border-dashed border-border p-3 text-center">
                 <p className="text-base leading-none font-extrabold tabular-nums">
-                  {formatPesewas(tier.pricePesewas * qty)}
+                  {formatPesewas(tier.pricePesewas * qty, tier.currency)}
                 </p>
                 <p className="bg-cta px-2 py-0.5 text-xs leading-none font-bold text-cta-foreground tabular-nums">
                   × {qty}
@@ -139,7 +185,7 @@ export function CartContents({
           {ticketCount} ticket{ticketCount === 1 ? "" : "s"}
         </p>
         <p className="text-xl font-extrabold tabular-nums [font-stretch:105%]">
-          {formatPesewas(totalPesewas)}
+          {formatPesewas(totalPesewas, cartCurrency)}
         </p>
       </div>
 
@@ -175,7 +221,7 @@ export function CartContents({
             </p>
           ) : null}
 
-          <PayButton total={totalPesewas} />
+          <PayButton total={totalPesewas} currency={cartCurrency} />
 
           <p className="text-center text-xs text-muted-foreground">
             Pay with mobile money or card. Your{" "}

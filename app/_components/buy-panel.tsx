@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 
 import { formatPesewas } from "@/lib/format";
+import type { Price } from "@/lib/pricing";
 import { useCart } from "./cart";
 import { useInView } from "./use-in-view";
 import { TicketPlans } from "./ticket-plans";
@@ -21,7 +22,6 @@ type Availability = {
  * and a panel repeating the same offer just covers what the buyer came to read.
  */
 export function TicketPlansSection({
-  checkoutOpen,
   soldOut,
   salesClosed,
 }: Availability) {
@@ -51,14 +51,14 @@ export function TicketPlansSection({
       </p>
 
       <div className="mt-8">
-        <TicketPlans checkoutOpen={checkoutOpen} />
+        <TicketPlans />
       </div>
     </section>
   );
 }
 
 /** The desktop rail's price and button. Redundant once the cards are visible. */
-export function BuyRail({ cheapest, ...availability }: Availability & { cheapest: number | null }) {
+export function BuyRail({ cheapest, ...availability }: Availability & { cheapest: Price | null }) {
   const { plansInView } = useCart();
 
   return (
@@ -83,7 +83,7 @@ export function BuyRail({ cheapest, ...availability }: Availability & { cheapest
  * something in the cart, because at that point it stops being an offer and becomes the
  * way to check out without scrolling back up.
  */
-export function BuyBar({ cheapest, ...availability }: Availability & { cheapest: number | null }) {
+export function BuyBar({ cheapest, ...availability }: Availability & { cheapest: Price | null }) {
   const { plansInView, ticketCount } = useCart();
   const show = !plansInView || ticketCount > 0;
 
@@ -103,8 +103,8 @@ export function BuyBar({ cheapest, ...availability }: Availability & { cheapest:
 }
 
 /** Shows the cart total once there is one, and the cheapest ticket before that. */
-function PriceLabel({ cheapest }: { cheapest: number | null }) {
-  const { ticketCount, totalPesewas } = useCart();
+function PriceLabel({ cheapest }: { cheapest: Price | null }) {
+  const { ticketCount, totalPesewas, currency } = useCart();
 
   if (ticketCount > 0) {
     return (
@@ -113,7 +113,7 @@ function PriceLabel({ cheapest }: { cheapest: number | null }) {
           {ticketCount} ticket{ticketCount === 1 ? "" : "s"}
         </p>
         <p className="text-2xl leading-none font-extrabold tabular-nums [font-stretch:105%]">
-          {formatPesewas(totalPesewas)}
+          {formatPesewas(totalPesewas, currency ?? undefined)}
         </p>
       </div>
     );
@@ -127,7 +127,7 @@ function PriceLabel({ cheapest }: { cheapest: number | null }) {
     <div className="min-w-0">
       <p className="text-xs text-muted-foreground">From</p>
       <p className="text-2xl leading-none font-extrabold tabular-nums [font-stretch:105%]">
-        {formatPesewas(cheapest)}
+        {formatPesewas(cheapest.pesewas, cheapest.currency)}
       </p>
     </div>
   );

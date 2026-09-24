@@ -185,6 +185,10 @@
   /* Plum-black, not device black. Ghanaian nightlife is warm — lamplight, dust, brick —
      and a blue-grey #0B0B0B would read as a settings screen. */
   --background: #141016;
+  /* The page itself, captured once. Scopes nested inside (the pricing cards) redefine
+     `--background`, but a notch punched through a card has to show the page, not the
+     card's own hover well. `var()` resolves here, so the value inherits as a colour. */
+  --page: var(--background);
   --foreground: #f2ece4;
   --card: #1c1622;
   --card-foreground: #f2ece4;
@@ -226,6 +230,47 @@
 }
 
 /**
+ * The pricing cards: a blue block on the night page.
+ *
+ * The page gold (#d79922) only reaches 2.8:1 on this blue, so ticks and the highlighted
+ * border would sink into it. The scope carries a brighter gold that clears 3:1 for those
+ * and keeps dark text on the button above 10:1. Secondary copy is a pale blue at 5:1,
+ * not the night mauve, which is 2.2:1 here.
+ */
+.theme-plan {
+  --background: #36498a; /* hover wells and focus-ring offsets inside the card */
+  --foreground: #ffffff;
+  --card: #4056a1;
+  --card-foreground: #ffffff;
+  --popover: #4056a1;
+  --popover-foreground: #ffffff;
+  --border: #6f82c4;
+  --input: #6f82c4;
+  --ring: #f2b53c;
+  --surface: #4056a1;
+
+  --muted: #36498a;
+  --muted-foreground: #d3dbf5;
+  --accent: #36498a;
+  --accent-foreground: #ffffff;
+  --secondary: #36498a;
+  --secondary-foreground: #ffffff;
+
+  --primary: #f2b53c;
+  --primary-foreground: #1a1206;
+  --destructive: #ffb199;
+  --success: #9ff0c4;
+  --warning: #ffd27a;
+  --highlight: #c9a6ff;
+  --highlight-foreground: #1a1024;
+
+  --cta: #f2b53c;
+  --cta-foreground: #1a1206;
+
+  color-scheme: dark;
+}
+
+/**
  * The page is a ticket.
  *
  * One structural idea, used once: the hero is the stub, this is the tear, everything
@@ -256,6 +301,54 @@
 
 .tear::after {
   right: -0.75rem;
+}
+
+/**
+ * The highlighted pricing card swaps its action colour from gold to a signal orange, the
+ * one loud note on the page. Border, badge, button, ticks and stepper all read `--cta`,
+ * so redirecting it here recolours the lot and nothing in the markup needs a variant.
+ *
+ * Pushed toward red on purpose: an amber orange would sit too close to the gold buttons
+ * beside it to read as different. Against the card blue it is a hue contrast, not a
+ * luminance one (2.3:1). That is accepted: the border is emphasis, not what identifies
+ * the card, and the button is identified by its label — dark text on orange at 6.3:1.
+ */
+.plan-featured {
+  --cta: #ff5f1f;
+  --cta-foreground: #1a0a04;
+  --ring: #ff5f1f;
+}
+
+/**
+ * The perforation across a pricing card, between what the ticket is and the stub you pay
+ * at. Laid edge to edge of the card's padding box; the notches are centred on the card's
+ * outer edge, through its border, so they read as punched out of the whole ticket.
+ * `--plan-border` has to match the card's border width. Each notch reaches ~13px into
+ * the gap, so the grid gap stays above 26px or neighbouring notches merge into one blob.
+ */
+.plan-tear {
+  position: relative;
+  border-top: 2px dashed var(--border);
+}
+
+.plan-tear::before,
+.plan-tear::after {
+  content: "";
+  position: absolute;
+  top: -1px;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 9999px;
+  background: var(--page);
+  transform: translateY(-50%);
+}
+
+.plan-tear::before {
+  left: calc(-1 * var(--plan-border, 4px) - 0.5625rem);
+}
+
+.plan-tear::after {
+  right: calc(-1 * var(--plan-border, 4px) - 0.5625rem);
 }
 
 /**

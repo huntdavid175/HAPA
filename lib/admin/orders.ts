@@ -1,5 +1,6 @@
 import "server-only";
 
+import { toCurrency, type Currency } from "@/lib/currency";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type OrderTicket = {
@@ -33,6 +34,8 @@ export type OrderDetail = {
   buyerPhone: string;
   buyerEmail: string;
   totalPesewas: number;
+  /** The order's currency; its items were all priced in it. */
+  currency: Currency;
   channel: string | null;
   needsRefund: boolean;
   refundReason: string | null;
@@ -59,7 +62,7 @@ export async function getOrderDetail(orderId: string): Promise<OrderDetail | nul
     .from("orders")
     .select(
       `id, paystack_reference, status, buyer_name, buyer_phone, buyer_email,
-       total_pesewas, paystack_channel, needs_refund, refund_reason,
+       total_pesewas, currency, paystack_channel, needs_refund, refund_reason,
        created_at, paid_at,
        order_items(quantity, unit_price_pesewas, ticket_tiers(name))`,
     )
@@ -96,6 +99,7 @@ export async function getOrderDetail(orderId: string): Promise<OrderDetail | nul
     buyerPhone: order.buyer_phone,
     buyerEmail: order.buyer_email,
     totalPesewas: order.total_pesewas,
+    currency: toCurrency(order.currency),
     channel: order.paystack_channel,
     needsRefund: order.needs_refund,
     refundReason: order.refund_reason,

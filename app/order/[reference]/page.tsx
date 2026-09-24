@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyTransaction } from "@/lib/paystack";
 import { paymentsEnabled } from "@/lib/env";
 import { formatPesewas } from "@/lib/format";
+import { toCurrency } from "@/lib/currency";
 import { OrderStatus } from "./status";
 
 export const metadata: Metadata = {
@@ -28,7 +29,7 @@ export default async function OrderPage({ params }: PageProps<"/order/[reference
 
   const { data: order } = await db
     .from("orders")
-    .select("id, status, total_pesewas, buyer_name, buyer_phone, needs_refund, events(name)")
+    .select("id, status, total_pesewas, currency, buyer_name, buyer_phone, needs_refund, events(name)")
     .eq("paystack_reference", reference)
     .maybeSingle();
 
@@ -40,7 +41,11 @@ export default async function OrderPage({ params }: PageProps<"/order/[reference
   if (order.status === "pending" && paymentsEnabled()) {
     try {
       const verified = await verifyTransaction(reference);
-      if (verified.status === "success" && verified.amountPesewas === order.total_pesewas) {
+      if (
+        verified.status === "success" &&
+        verified.amountPesewas === order.total_pesewas &&
+        verified.currency === order.currency
+      ) {
         await db.rpc("issue_tickets_for_order", {
           p_order_id: order.id,
           p_channel: verified.channel ?? undefined,
@@ -67,7 +72,7 @@ export default async function OrderPage({ params }: PageProps<"/order/[reference
       eventName={eventName}
       buyerName={order.buyer_name}
       buyerPhone={order.buyer_phone}
-      amount={formatPesewas(order.total_pesewas)}
+      amount={formatPesewas(order.total_pesewas, toCurrency(order.currency))}
       needsRefund={order.needs_refund}
       tickets={(tickets ?? []).map((t) => ({ code: t.code, token: t.qr_token }))}
     />

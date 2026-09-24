@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { eventUrl, qrSvg } from "@/lib/share";
 import { formatEventDate, formatEventTime, formatPesewas } from "@/lib/format";
+import { cheapestPrice } from "@/lib/pricing";
 import { CopyButton } from "./copy-button";
 
 export const metadata: Metadata = { title: "Share" };
@@ -39,19 +40,20 @@ export default async function SharePage() {
 
   const { data: tiers } = await supabase
     .from("ticket_tiers")
-    .select("price_pesewas")
+    .select("price_pesewas, currency")
     .eq("event_id", event.id)
-    .eq("active", true)
-    .order("price_pesewas", { ascending: true });
+    .eq("active", true);
 
-  const cheapest = tiers?.[0]?.price_pesewas;
+  // Same rule as the event page's "From": cedis first, since prices in two currencies
+  // cannot be compared.
+  const cheapest = cheapestPrice(tiers ?? []);
 
   // Pre-written so the organizer can paste straight into a WhatsApp group.
   const blurb = [
     event.name,
     `${formatEventDate(event.starts_at, event.timezone)} · ${formatEventTime(event.starts_at, event.timezone)}`,
     event.venue || null,
-    cheapest ? `Tickets from ${formatPesewas(cheapest)}` : null,
+    cheapest ? `Tickets from ${formatPesewas(cheapest.pesewas, cheapest.currency)}` : null,
     "",
     `Get your ticket: ${url}`,
   ]

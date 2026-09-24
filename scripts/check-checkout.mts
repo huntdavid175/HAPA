@@ -201,6 +201,61 @@ async function main() {
   check("and flagged for refund rather than silently swallowed", flagged!.needs_refund, true);
   check("with a reason recorded", (flagged!.refund_reason ?? "").length > 0, true);
 
+  // --- Currency ------------------------------------------------------------------------
+  // Paystack charges one currency per payment, so the database refuses an order that
+  // mixes them — the drawer prevents it too, but a crafted request would skip the drawer.
+  // Two fresh tiers, because the one above is sold out and would fail for that reason
+  // first, proving nothing about currency.
+  console.log("\nCurrency");
+  const { data: priced, error: pricedError } = await db
+    .from("ticket_tiers")
+    .insert([
+      // Explicit even though GHS is the default: a multi-row insert sends null, not the
+      // default, for a key that only some rows carry.
+      {
+        event_id: eventId, name: `${TAG}-cedi`, price_pesewas: 1000, capacity: 5, position: 1,
+        currency: "GHS",
+      },
+      {
+        event_id: eventId, name: `${TAG}-usd`, price_pesewas: 2500, capacity: 5, position: 2,
+        currency: "USD",
+      },
+    ])
+    .select("id, currency");
+  if (pricedError) throw new Error(`could not create currency tiers: ${pricedError.message}`);
+  const cediTier = priced.find((t) => t.currency === "GHS")!.id;
+  const usdTier = priced.find((t) => t.currency === "USD")!.id;
+
+  const usd = await reserve(eventId, usdTier, 2, `${TAG}-usd`, "+233209999101", randomUUID());
+  check("a dollar tier's order is charged in USD", usd.data?.[0]?.currency, "USD");
+  check("and totals in cents", usd.data?.[0]?.total_pesewas, 5000);
+
+  const cedi = await reserve(eventId, cediTier, 1, `${TAG}-cedi`, "+233209999102", randomUUID());
+  check("a cedi tier's order is charged in GHS", cedi.data?.[0]?.currency, "GHS");
+
+  const mixed = await db.rpc("reserve_tickets", {
+    p_event_id: eventId,
+    p_items: [
+      { tier_id: cediTier, quantity: 1 },
+      { tier_id: usdTier, quantity: 1 },
+    ],
+    p_buyer_name: "Mixed Buyer",
+    p_buyer_phone: "+233209999103",
+    p_buyer_email: "mixed@example.com",
+    p_reference: `${TAG}-mixed`,
+    p_ip_hash: randomUUID(),
+    p_hold_minutes: 10,
+  });
+  check(
+    "an order mixing cedis and dollars is refused",
+    /separate orders/i.test(mixed.error?.message ?? ""),
+    true,
+  );
+  const { count: mixedOrders } = await db
+    .from("orders").select("id", { count: "exact", head: true })
+    .eq("paystack_reference", `${TAG}-mixed`);
+  check("and leaves no order behind", mixedOrders, 0);
+
   // Nothing to restore any more — the event and tier were ours, so they just go.
   await removeScratchData();
 
@@ -210,6 +265,7 @@ async function main() {
 
 main().catch(async (err) => {
   console.error("\nCheck failed:", err.message ?? err);
-  await cleanup();
+  // The scratch event and tiers too, not just orders: this runs against production.
+  await removeScratchData();
   process.exit(1);
 });

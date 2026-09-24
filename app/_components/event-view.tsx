@@ -2,6 +2,8 @@ import { formatEventDateRange, formatEventTime } from "@/lib/format";
 import { isFullyUnavailable, type EventWithTiers } from "@/lib/events";
 import { paymentsEnabled } from "@/lib/env";
 import { ensureRichText } from "@/lib/rich-text";
+import { cheapestPrice } from "@/lib/pricing";
+import { toCurrency } from "@/lib/currency";
 import { EventHero } from "./event-hero";
 import { AboutText } from "./about-text";
 import { CartProvider, type CartTier } from "./cart";
@@ -24,9 +26,7 @@ export function EventView({ event }: { event: EventWithTiers }) {
   const canBuy = !soldOut && !salesClosed && event.tiers.length > 0;
   const checkoutOpen = canBuy && paymentsEnabled();
 
-  const cheapest = event.tiers.length
-    ? Math.min(...event.tiers.map((t) => t.price_pesewas))
-    : null;
+  const cheapest = cheapestPrice(event.tiers);
 
   const unavailableNotice = salesClosed
     ? "Ticket sales have closed. If you already bought one it is still valid — check your WhatsApp or SMS."
@@ -42,6 +42,7 @@ export function EventView({ event }: { event: EventWithTiers }) {
     description: tier.description,
     benefits: tier.benefits ?? [],
     pricePesewas: tier.price_pesewas,
+    currency: toCurrency(tier.currency),
     available: tier.available,
     unavailableReason: tier.unavailableReason,
     highlight: tier.highlight ?? false,

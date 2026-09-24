@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,20 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  CURRENCIES,
+  CURRENCY_LABELS,
+  CURRENCY_SYMBOLS,
+  type Currency,
+} from "@/lib/currency";
 import { ScheduleFields } from "./schedule-fields";
 import { DescriptionEditor } from "./description-editor";
 import {
@@ -202,6 +216,8 @@ export type TierFormValues = {
   benefits: string;
   highlight: boolean;
   badge: string;
+  currency: Currency;
+  /** In major units of `currency`, as typed: "350.00". */
   priceGhs: string;
   capacity: string;
 };
@@ -209,121 +225,157 @@ export type TierFormValues = {
 export function TierForm({
   eventId,
   tier,
+  onSaved,
 }: {
   eventId: string;
   tier?: TierFormValues;
+  /** Called after a successful save, so the sheet holding the form can close. */
+  onSaved?: () => void;
 }) {
-  const [state, action] = useActionState(saveTier, initial);
+  const [state, action] = useActionState(async (prev: ActionState, formData: FormData) => {
+    const result = await saveTier(prev, formData);
+    if (result.ok) onSaved?.();
+    return result;
+  }, initial);
+  const key = tier?.id ?? "new";
+  const [currency, setCurrency] = useState<Currency>(tier?.currency ?? "GHS");
 
   return (
-    <form action={action}>
+    <form action={action} className="flex min-h-0 flex-1 flex-col">
       <input type="hidden" name="eventId" value={eventId} />
       {tier?.id ? <input type="hidden" name="id" value={tier.id} /> : null}
 
-      <FieldGroup>
-        <div className="grid gap-6 sm:grid-cols-4">
-          <Field className="sm:col-span-2">
-            <FieldLabel htmlFor={`name-${tier?.id ?? "new"}`}>Name</FieldLabel>
+      <div className="flex-1 overflow-y-auto px-4 pb-4">
+        <FieldGroup>
+          <Field>
+            <FieldLabel htmlFor={`name-${key}`}>Name</FieldLabel>
+            <Input id={`name-${key}`} name="name" defaultValue={tier?.name ?? ""} required />
+          </Field>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Field>
+              <FieldLabel htmlFor={`currency-${key}`}>Currency</FieldLabel>
+              <Select
+                name="currency"
+                value={currency}
+                onValueChange={(v) => v && setCurrency(v as Currency)}
+                items={CURRENCIES.map((c) => ({ value: c, label: CURRENCY_LABELS[c] }))}
+              >
+                <SelectTrigger id={`currency-${key}`} className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {CURRENCIES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {CURRENCY_LABELS[c]}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor={`price-${key}`}>
+                Price ({CURRENCY_SYMBOLS[currency]})
+              </FieldLabel>
+              <Input
+                id={`price-${key}`}
+                name="priceGhs"
+                type="number"
+                step="0.01"
+                min="0.01"
+                inputMode="decimal"
+                defaultValue={tier?.priceGhs ?? ""}
+                required
+              />
+            </Field>
+          </div>
+
+          {currency === "USD" ? (
+            <p className="-mt-3 text-sm text-muted-foreground">
+              Dollar tickets are paid by card only, since mobile money is cedis only. Paystack
+              has to enable USD on your account before these can be bought. A buyer&rsquo;s cart
+              holds one currency at a time.
+            </p>
+          ) : null}
+
+          <div className="grid grid-cols-2 gap-4">
+            <Field>
+              <FieldLabel htmlFor={`cap-${key}`}>Capacity</FieldLabel>
+              <Input
+                id={`cap-${key}`}
+                name="capacity"
+                type="number"
+                step="1"
+                min="1"
+                inputMode="numeric"
+                defaultValue={tier?.capacity ?? ""}
+                required
+              />
+            </Field>
+          </div>
+
+          <Field>
+            <FieldLabel htmlFor={`desc-${key}`}>Description</FieldLabel>
             <Input
-              id={`name-${tier?.id ?? "new"}`}
-              name="name"
-              defaultValue={tier?.name ?? ""}
-              required
+              id={`desc-${key}`}
+              name="description"
+              defaultValue={tier?.description ?? ""}
+              placeholder="One line — what this ticket is"
             />
           </Field>
 
           <Field>
-            <FieldLabel htmlFor={`price-${tier?.id ?? "new"}`}>Price (GHâµ)</FieldLabel>
-            <Input
-              id={`price-${tier?.id ?? "new"}`}
-              name="priceGhs"
-              type="number"
-              step="0.01"
-              min="0.01"
-              inputMode="decimal"
-              defaultValue={tier?.priceGhs ?? ""}
-              required
+            <FieldLabel htmlFor={`benefits-${key}`}>What you get</FieldLabel>
+            <Textarea
+              id={`benefits-${key}`}
+              name="benefits"
+              rows={5}
+              defaultValue={tier?.benefits ?? ""}
+              placeholder={"All three days\nReserved seating\nWelcome drink"}
             />
+            <FieldDescription>
+              One per line, up to 8. These are what a buyer compares between tiers, so keep
+              them short and answer the same question in each one.
+            </FieldDescription>
+          </Field>
+
+          <Field orientation="horizontal">
+            <Checkbox
+              id={`highlight-${key}`}
+              name="highlight"
+              defaultChecked={tier?.highlight ?? false}
+            />
+            <FieldLabel htmlFor={`highlight-${key}`} className="font-normal">
+              Make this tier stand out in the pricing cards
+            </FieldLabel>
           </Field>
 
           <Field>
-            <FieldLabel htmlFor={`cap-${tier?.id ?? "new"}`}>Capacity</FieldLabel>
+            <FieldLabel htmlFor={`badge-${key}`}>
+              Badge <span className="text-muted-foreground">(optional)</span>
+            </FieldLabel>
             <Input
-              id={`cap-${tier?.id ?? "new"}`}
-              name="capacity"
-              type="number"
-              step="1"
-              min="1"
-              inputMode="numeric"
-              defaultValue={tier?.capacity ?? ""}
-              required
+              id={`badge-${key}`}
+              name="badge"
+              maxLength={24}
+              placeholder="Most popular"
+              defaultValue={tier?.badge ?? ""}
             />
+            <FieldDescription>
+              Shown on the highlighted card. Your words, so only claim what is true — leave
+              it blank to highlight the card without saying anything.
+            </FieldDescription>
           </Field>
-        </div>
+        </FieldGroup>
+      </div>
 
-        <Field>
-          <FieldLabel htmlFor={`desc-${tier?.id ?? "new"}`}>Description</FieldLabel>
-          <Input
-            id={`desc-${tier?.id ?? "new"}`}
-            name="description"
-            defaultValue={tier?.description ?? ""}
-            placeholder="One line — what this ticket is"
-          />
-        </Field>
-
-        <Field>
-          <FieldLabel htmlFor={`benefits-${tier?.id ?? "new"}`}>
-            What you get
-          </FieldLabel>
-          <Textarea
-            id={`benefits-${tier?.id ?? "new"}`}
-            name="benefits"
-            rows={4}
-            defaultValue={tier?.benefits ?? ""}
-            placeholder={"All three days\nReserved seating\nWelcome drink"}
-          />
-          <FieldDescription>
-            One per line, up to 8. These are what a buyer compares between tiers, so keep
-            them short and answer the same question in each one.
-          </FieldDescription>
-        </Field>
-
-        <Field orientation="horizontal">
-          <Checkbox
-            id={`highlight-${tier?.id ?? "new"}`}
-            name="highlight"
-            defaultChecked={tier?.highlight ?? false}
-          />
-          <FieldLabel
-            htmlFor={`highlight-${tier?.id ?? "new"}`}
-            className="font-normal"
-          >
-            Make this tier stand out in the pricing cards
-          </FieldLabel>
-        </Field>
-
-        <Field>
-          <FieldLabel htmlFor={`badge-${tier?.id ?? "new"}`}>
-            Badge <span className="text-muted-foreground">(optional)</span>
-          </FieldLabel>
-          <Input
-            id={`badge-${tier?.id ?? "new"}`}
-            name="badge"
-            maxLength={24}
-            placeholder="Most popular"
-            defaultValue={tier?.badge ?? ""}
-          />
-          <FieldDescription>
-            Shown on the highlighted card. Your words, so only claim what is true — leave
-            it blank to highlight the card without saying anything.
-          </FieldDescription>
-        </Field>
-
-        <Field orientation="horizontal">
-          <Submit label={tier?.id ? "Save tier" : "Add tier"} size="sm" />
-          <Feedback state={state} />
-        </Field>
-      </FieldGroup>
+      <div className="flex flex-wrap items-center gap-3 border-t p-4">
+        <Submit label={tier?.id ? "Save tier" : "Add tier"} />
+        <Feedback state={state} />
+      </div>
     </form>
   );
 }
@@ -333,7 +385,7 @@ export function DeactivateTierButton({ id }: { id: string }) {
   return (
     <form action={action} className="flex items-center gap-2">
       <input type="hidden" name="id" value={id} />
-      <Submit label="Remove from sale" pendingLabel="Removingâ¦" variant="ghost" size="sm" />
+      <Submit label="Remove from sale" pendingLabel="Removing…" variant="ghost" size="sm" />
       <Feedback state={state} />
     </form>
   );

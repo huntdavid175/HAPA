@@ -13,6 +13,7 @@ import {
   initializeTransaction,
 } from "@/lib/paystack";
 import { paymentsEnabled } from "@/lib/env";
+import { toCurrency } from "@/lib/currency";
 
 export type CheckoutState = { error: string | null };
 
@@ -108,6 +109,9 @@ export async function startCheckout(
     const init = await initializeTransaction({
       email: parsed.data.email,
       amountPesewas: order.total_pesewas,
+      // The currency reserve_tickets settled on from the tiers themselves — never one the
+      // browser sent, which could otherwise ask for dollars at a cedi price.
+      currency: toCurrency(order.currency),
       reference,
       callbackUrl: checkoutCallbackUrl(reference),
       metadata: { order_id: order.order_id, buyer_name: parsed.data.name },

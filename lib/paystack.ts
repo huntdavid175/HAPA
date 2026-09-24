@@ -3,12 +3,14 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { requirePaystack, clientEnv } from "@/lib/env";
+import type { Currency } from "@/lib/currency";
 
 /**
  * Paystack, Ghana.
  *
- * Amounts are integer pesewas — GHS 50.00 is 5000. Paystack takes the minor unit, which
- * is the same unit the database stores, so nothing converts anywhere in this file.
+ * Amounts are integer minor units — GHS 50.00 is 5000 pesewas, USD 50.00 is 5000 cents.
+ * Paystack takes the minor unit for both, which is the same unit the database stores, so
+ * nothing converts anywhere in this file.
  */
 
 const API = "https://api.paystack.co";
@@ -29,12 +31,18 @@ export type VerifyResult = {
 };
 
 /**
- * Opens a hosted checkout. `channels` includes mobile money because that is how most
- * Ghanaian buyers pay; Paystack shows the network picker and sends the PIN prompt.
+ * Opens a hosted checkout. Cedi checkouts include mobile money because that is how most
+ * Ghanaian buyers pay; Paystack shows the network picker and sends the PIN prompt. Mobile
+ * money only moves cedis, so a dollar checkout is card only — offering it would show a
+ * method that fails.
+ *
+ * A USD charge also needs USD enabled on the Paystack account. Until it is, Paystack
+ * rejects the initialize call and the buyer sees that message instead of a checkout.
  */
 export async function initializeTransaction(input: {
   email: string;
   amountPesewas: number;
+  currency: Currency;
   reference: string;
   callbackUrl: string;
   metadata?: Record<string, unknown>;
@@ -50,10 +58,10 @@ export async function initializeTransaction(input: {
     body: JSON.stringify({
       email: input.email,
       amount: input.amountPesewas,
-      currency: "GHS",
+      currency: input.currency,
       reference: input.reference,
       callback_url: input.callbackUrl,
-      channels: ["mobile_money", "card"],
+      channels: input.currency === "GHS" ? ["mobile_money", "card"] : ["card"],
       metadata: input.metadata ?? {},
     }),
     cache: "no-store",

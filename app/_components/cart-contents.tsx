@@ -20,7 +20,7 @@ function PayButton({ total, currency }: { total: number; currency?: Currency }) 
     <button
       type="submit"
       disabled={pending || total === 0}
-      className="w-full bg-cta px-6 py-3.5 text-[0.95rem] font-bold text-cta-foreground transition hover:brightness-95 focus-visible:ring-2 focus-visible:ring-cta focus-visible:ring-offset-4 focus-visible:ring-offset-background focus-visible:outline-none disabled:opacity-40"
+      className="w-full bg-cta px-6 py-3.5 text-sm font-bold text-cta-foreground transition hover:brightness-95 focus-visible:ring-2 focus-visible:ring-cta focus-visible:ring-offset-4 focus-visible:ring-offset-background focus-visible:outline-none disabled:opacity-40"
     >
       {pending ? "Taking you to payment…" : `Pay ${formatPesewas(total, currency)}`}
     </button>
@@ -130,10 +130,10 @@ export function CartContents({
               className="stub grid grid-cols-[minmax(0,1fr)_var(--stub-width)] border border-cta bg-card ring-1 ring-cta"
             >
               <div className="p-5">
-                <h3 className="text-lg leading-tight font-bold [font-stretch:105%]">
+                <h3 className="text-base leading-tight font-bold [font-stretch:105%]">
                   {tier.name}
                 </h3>
-                <p className="mt-1.5 text-sm text-muted-foreground tabular-nums">
+                <p className="mt-1 text-[0.8125rem] text-muted-foreground tabular-nums">
                   {formatPesewas(tier.pricePesewas, tier.currency)} each
                 </p>
 
@@ -150,7 +150,7 @@ export function CartContents({
                   <span
                     aria-live="polite"
                     aria-label={`${qty} ${tier.name} selected`}
-                    className="w-5 text-center text-lg font-bold tabular-nums"
+                    className="w-5 text-center text-base font-bold tabular-nums"
                   >
                     {qty}
                   </span>
@@ -168,7 +168,7 @@ export function CartContents({
               </div>
 
               <div className="flex flex-col items-center justify-center gap-1.5 border-l-2 border-dashed border-border p-3 text-center">
-                <p className="text-base leading-none font-extrabold tabular-nums">
+                <p className="text-sm leading-none font-extrabold tabular-nums">
                   {formatPesewas(tier.pricePesewas * qty, tier.currency)}
                 </p>
                 <p className="bg-cta px-2 py-0.5 text-xs leading-none font-bold text-cta-foreground tabular-nums">
@@ -184,7 +184,7 @@ export function CartContents({
         <p className="text-sm text-muted-foreground">
           {ticketCount} ticket{ticketCount === 1 ? "" : "s"}
         </p>
-        <p className="text-xl font-extrabold tabular-nums [font-stretch:105%]">
+        <p className="text-lg font-extrabold tabular-nums [font-stretch:105%]">
           {formatPesewas(totalPesewas, cartCurrency)}
         </p>
       </div>
@@ -197,7 +197,7 @@ export function CartContents({
       ) : (
         <div className="flex flex-col gap-4 border-t border-border pt-6">
           <div>
-            <h3 className="text-lg font-bold [font-stretch:105%]">Your details</h3>
+            <h3 className="text-base font-bold [font-stretch:105%]">Your details</h3>
             <p className="mt-1 text-sm text-muted-foreground">
               Your {ticketCount === 1 ? "ticket goes" : "tickets go"} to this number by
               WhatsApp and SMS.
@@ -244,7 +244,7 @@ function Field({
 } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium">
+      <label htmlFor={id} className="block text-[0.8125rem] font-medium">
         {label}
       </label>
       <input

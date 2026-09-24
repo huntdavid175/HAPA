@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { createClient } from "@/lib/supabase/server";
-import { serverEnv } from "@/lib/env";
+import { isChannelLive } from "@/lib/messaging";
 import { ComposeForm, DrainButton } from "./forms";
 
 export const metadata: Metadata = { title: "Messages" };
@@ -52,7 +52,8 @@ export default async function BroadcastsPage() {
       .eq("status", "paid"),
   ]);
 
-  const provider = serverEnv().MESSAGING_PROVIDER;
+  const emailLive = isChannelLive("email");
+  const textLive = isChannelLive("sms");
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
@@ -62,12 +63,22 @@ export default async function BroadcastsPage() {
         message per buyer, not per ticket.
       </p>
 
-      {provider === "stub" ? (
+      {!emailLive || !textLive ? (
         <p className="mt-5 rounded-xl border border-warning/40 bg-card p-4 text-sm">
-          <strong className="text-warning">No SMS provider connected yet.</strong>{" "}
-          Everything below works and is recorded, but nothing actually leaves the building.
-          Messages queue up and will show as sent by the <code>stub</code> provider. Wire
-          up Moolre to send for real.
+          {emailLive ? (
+            <>
+              <strong className="text-warning">Email only for now.</strong> SMS and
+              WhatsApp have no provider yet, so messages on those channels are recorded
+              as sent by the <code>stub</code> but never leave the building.
+            </>
+          ) : (
+            <>
+              <strong className="text-warning">Nothing is connected yet.</strong>{" "}
+              Everything below works and is recorded, but no message actually leaves the
+              building — they show as sent by the <code>stub</code> provider. Set
+              EMAIL_PROVIDER=resend to send email for real.
+            </>
+          )}
         </p>
       ) : null}
 

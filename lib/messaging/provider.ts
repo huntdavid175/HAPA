@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { ReactElement } from "react";
+
 /**
  * The messaging port.
  *
@@ -19,7 +21,15 @@ export type SendRequest = {
   /** Required for WhatsApp: business-initiated messages must use an approved template. */
   templateName?: string;
   templateVariables?: Record<string, string>;
+  /** Email only. Required there — a subjectless email reads as spam. */
   subject?: string;
+  /** Email only: the React Email template. `body` is always sent too, as the text part. */
+  react?: ReactElement;
+  /**
+   * Stable per outbox row, so a retry after a timeout cannot deliver twice. Providers
+   * that support it pass it on; the rest ignore it.
+   */
+  idempotencyKey?: string;
 };
 
 export type SendResult =

@@ -1,22 +1,45 @@
 import "server-only";
 
 import { serverEnv } from "@/lib/env";
-import type { MessagingProvider } from "./provider";
+import type { Channel, MessagingProvider } from "./provider";
+import { ResendProvider } from "./resend";
 import { StubProvider } from "./stub";
 
 export type { MessagingProvider, SendRequest, SendResult, Channel } from "./provider";
 
-let cached: MessagingProvider | undefined;
+let cachedText: MessagingProvider | undefined;
+let cachedEmail: MessagingProvider | undefined;
 
 /**
- * Resolves the configured provider.
+ * The provider for one channel.
  *
- * MESSAGING_PROVIDER=stub is the default and sends nothing. Selecting "moolre" without
- * full credentials is already rejected at boot by lib/env.ts, so by the time this runs
- * the configuration is known-good.
+ * Email and SMS/WhatsApp are configured separately (EMAIL_PROVIDER, MESSAGING_PROVIDER)
+ * because they come from different vendors and go live at different times: tickets can
+ * go out by email through Resend while the Moolre contract is still being confirmed.
+ * Misconfiguration of either is rejected at boot by lib/env.ts.
  */
-export function messaging(): MessagingProvider {
-  if (cached) return cached;
+export function messaging(channel: Channel): MessagingProvider {
+  return channel === "email" ? emailProvider() : textProvider();
+}
+
+/** Whether a channel actually reaches people, as opposed to being recorded by the stub. */
+export function isChannelLive(channel: Channel): boolean {
+  return messaging(channel).name !== "stub";
+}
+
+function emailProvider(): MessagingProvider {
+  if (cachedEmail) return cachedEmail;
+
+  const env = serverEnv();
+  cachedEmail =
+    env.EMAIL_PROVIDER === "resend"
+      ? new ResendProvider(env.RESEND_API_KEY!, env.EMAIL_FROM!, env.EMAIL_REPLY_TO)
+      : new StubProvider();
+  return cachedEmail;
+}
+
+function textProvider(): MessagingProvider {
+  if (cachedText) return cachedText;
 
   const provider = serverEnv().MESSAGING_PROVIDER;
   switch (provider) {
@@ -31,7 +54,7 @@ export function messaging(): MessagingProvider {
       );
     case "stub":
     default:
-      cached = new StubProvider();
-      return cached;
+      cachedText = new StubProvider();
+      return cachedText;
   }
 }

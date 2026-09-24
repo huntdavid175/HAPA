@@ -73,7 +73,7 @@ export function ComposeForm({
         <legend className="text-sm font-medium">Send by</legend>
         <div className="mt-2 space-y-2">
           <label className="flex items-start gap-2 text-sm">
-            <input type="checkbox" name="channels" value="sms" defaultChecked className="mt-1" />
+            <input type="checkbox" name="channels" value="sms" className="mt-1" />
             <span>
               <strong>SMS</strong>
               <span className="block text-xs text-muted-foreground">
@@ -102,11 +102,12 @@ export function ComposeForm({
           </label>
 
           <label className="flex items-start gap-2 text-sm">
-            <input type="checkbox" name="channels" value="email" className="mt-1" />
+            <input type="checkbox" name="channels" value="email" defaultChecked className="mt-1" />
             <span>
               <strong>Email</strong>
               <span className="block text-xs text-muted-foreground">
-                Free-form, useful as a backup when a phone number bounces.
+                Any wording, to the address each buyer gave at checkout. This is how
+                tickets are delivered for now.
               </span>
             </span>
           </label>

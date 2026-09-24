@@ -60,6 +60,19 @@ const serverSchema = z
     MOOLRE_ACCOUNT_NUMBER: z.string().optional(),
     MOOLRE_SENDER_ID: z.string().optional(),
 
+    // Email is routed separately from SMS/WhatsApp, so tickets can go out by email while
+    // the Moolre contract is still unconfirmed. "stub" records and sends nothing.
+    EMAIL_PROVIDER: z.enum(["stub", "resend"]).default("stub"),
+    RESEND_API_KEY: z
+      .string()
+      .startsWith("re_", "expected a Resend API key (re_…)")
+      .optional(),
+    // "HAPA Tickets <tickets@yourdomain.com>". The domain must be verified in Resend;
+    // until it is, only onboarding@resend.dev works, and only to your own address.
+    EMAIL_FROM: z.string().min(3).optional(),
+    // Where a buyer's reply lands. Without it, replies go to the sending address.
+    EMAIL_REPLY_TO: z.email().optional(),
+
     SENTRY_DSN: z.url().optional(),
 
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -81,6 +94,10 @@ const serverSchema = z
         'MESSAGING_PROVIDER="moolre" requires MOOLRE_API_URL, MOOLRE_API_USER, ' +
         "MOOLRE_API_KEY, MOOLRE_ACCOUNT_NUMBER and MOOLRE_SENDER_ID",
     },
+  )
+  .refine(
+    (env) => env.EMAIL_PROVIDER !== "resend" || Boolean(env.RESEND_API_KEY && env.EMAIL_FROM),
+    { error: 'EMAIL_PROVIDER="resend" requires RESEND_API_KEY and EMAIL_FROM' },
   );
 
 export type ClientEnv = z.infer<typeof clientSchema>;

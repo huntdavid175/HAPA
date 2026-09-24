@@ -29,7 +29,7 @@ export default async function OrderPage({ params }: PageProps<"/order/[reference
 
   const { data: order } = await db
     .from("orders")
-    .select("id, status, total_pesewas, currency, buyer_name, buyer_phone, needs_refund, events(name)")
+    .select("id, status, total_pesewas, currency, buyer_name, buyer_phone, buyer_email, needs_refund, events(name)")
     .eq("paystack_reference", reference)
     .maybeSingle();
 
@@ -72,6 +72,7 @@ export default async function OrderPage({ params }: PageProps<"/order/[reference
       eventName={eventName}
       buyerName={order.buyer_name}
       buyerPhone={order.buyer_phone}
+      buyerEmail={order.buyer_email}
       amount={formatPesewas(order.total_pesewas, toCurrency(order.currency))}
       needsRefund={order.needs_refund}
       tickets={(tickets ?? []).map((t) => ({ code: t.code, token: t.qr_token }))}

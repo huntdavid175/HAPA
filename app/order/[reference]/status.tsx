@@ -22,6 +22,7 @@ export function OrderStatus({
   eventName,
   buyerName,
   buyerPhone,
+  buyerEmail,
   amount,
   needsRefund,
   tickets,
@@ -30,6 +31,7 @@ export function OrderStatus({
   eventName: string;
   buyerName: string;
   buyerPhone: string;
+  buyerEmail: string;
   amount: string;
   needsRefund: boolean;
   tickets: Ticket[];
@@ -86,7 +88,7 @@ export function OrderStatus({
 
           <p className="mt-6 border-l-2 border-border pl-4 text-sm text-muted-foreground">
             We&rsquo;ve sent your {tickets.length === 1 ? "ticket" : "tickets"} to{" "}
-            <strong className="text-foreground">{buyerPhone}</strong> on WhatsApp and SMS.
+            <strong className="text-foreground break-all">{buyerEmail}</strong>.
             You can also open {tickets.length === 1 ? "it" : "them"} here right now — no
             need to wait.
           </p>
@@ -152,7 +154,7 @@ export function OrderStatus({
         <p className="mt-6 text-sm text-muted-foreground" aria-live="polite">
           {waited < 120
             ? "Waiting for your payment to confirm. Keep this page open."
-            : "This is taking longer than usual. Keep this page open — if the money has left your account, your ticket will still arrive by SMS and WhatsApp."}
+            : "This is taking longer than usual. Keep this page open — if the money has left your account, your ticket will still arrive by email."}
         </p>
 
         {/* Deliberately no retry button: a second attempt while the first is still in

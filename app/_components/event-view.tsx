@@ -29,7 +29,7 @@ export function EventView({ event }: { event: EventWithTiers }) {
   const cheapest = cheapestPrice(event.tiers);
 
   const unavailableNotice = salesClosed
-    ? "Ticket sales have closed. If you already bought one it is still valid — check your WhatsApp or SMS."
+    ? "Ticket sales have closed. If you already bought one it is still valid — check your email."
     : soldOut
       ? "Every ticket has been sold. If more are released they will appear here."
       : event.tiers.length === 0

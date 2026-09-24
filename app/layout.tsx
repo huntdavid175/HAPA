@@ -26,7 +26,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: { default: "Tickets", template: "%s · Tickets" },
-  description: "Buy your ticket and get it on WhatsApp or SMS. Nothing to print.",
+  description: "Buy your ticket and get it by email. Nothing to print.",
 };
 
 // Buyers are almost entirely on phones, and many will open this from a QR code.

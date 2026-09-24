@@ -141,8 +141,18 @@ preview shows — use `richTextToPlain`, never the raw markup.
 
 ## Still open
 
-- `MESSAGING_PROVIDER=stub` sends nothing. The Moolre adapter is deliberately
-  unimplemented until their API contract is confirmed — no messages reach a buyer today.
+- **Tickets go out by email** through Resend (`EMAIL_PROVIDER=resend`, `lib/messaging/
+  resend.ts`). Providers are chosen per channel: `messaging(channel)`. SMS/WhatsApp stay
+  on `MESSAGING_PROVIDER=stub` — the Moolre adapter is deliberately unimplemented until
+  their API contract is confirmed — and ticket delivery only queues SMS/WhatsApp rows once
+  that provider is live, so the order page never claims "sent by SMS" for a stub send.
+- Each outbox row's id is Resend's `Idempotency-Key`, so a worker retry cannot deliver
+  twice. The email is rebuilt from the order at send time (`lib/messaging/email.ts`); the
+  row's `body` is the SMS text, kept as the record.
+- `EMAIL_FROM` needs a domain verified in Resend. Until then only
+  `onboarding@resend.dev` sends, and only to the Resend account owner's own address.
+- `check:orders` and `check:broadcast` look up a seed tier called "Regular" on
+  `sample-event`, which the live data no longer has — both fail before testing anything.
 - **The Paystack webhook is not registered.** Nothing has ever reached
   `/api/webhooks/paystack`. Every ticket issued so far came from the callback page's
   inline verify, which contradicts the settled decision above — a buyer who closes the

@@ -192,19 +192,20 @@ export function CartContents({
       {!checkoutOpen ? (
         <p className="border-l-2 border-border pl-4 text-sm text-muted-foreground">
           Card and mobile money payments are being switched on. Once they are live you
-          will pay here and get your tickets on WhatsApp and SMS straight away.
+          will pay here and get your tickets by email straight away.
         </p>
       ) : (
         <div className="flex flex-col gap-4 border-t border-border pt-6">
           <div>
             <h3 className="text-base font-bold [font-stretch:105%]">Your details</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Your {ticketCount === 1 ? "ticket goes" : "tickets go"} to this number by
-              WhatsApp and SMS.
+              We email your {ticketCount === 1 ? "ticket" : "tickets"} the moment you
+              pay, so check the address.
             </p>
           </div>
 
           <Field id="name" label="Full name" autoComplete="name" />
+          <Field id="email" label="Email" type="email" autoComplete="email" />
           <Field
             id="phone"
             label="Phone number"
@@ -213,7 +214,6 @@ export function CartContents({
             autoComplete="tel"
             placeholder="024 123 4567"
           />
-          <Field id="email" label="Email" type="email" autoComplete="email" />
 
           {state.error ? (
             <p role="alert" className="text-sm font-medium text-destructive">

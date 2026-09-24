@@ -2,6 +2,8 @@ import "server-only";
 
 import { clientEnv } from "@/lib/env";
 import type { createAdminClient } from "@/lib/supabase/admin";
+import { isChannelLive } from "./index";
+import type { Channel } from "./provider";
 
 type Db = ReturnType<typeof createAdminClient>;
 
@@ -23,13 +25,23 @@ type Db = ReturnType<typeof createAdminClient>;
  * Built fresh from the current tickets every time it is called, so a resend after a void
  * describes what the buyer actually still holds rather than replaying the original text.
  */
+export type TicketMessage = {
+  phone: string;
+  email: string;
+  eventName: string;
+  codes: string[];
+  link: string;
+  /** The short SMS/WhatsApp text. Email builds its own from the fields above. */
+  body: string;
+};
+
 export async function composeTicketMessage(
   db: Db,
   orderId: string,
-): Promise<{ recipient: string; body: string } | null> {
+): Promise<TicketMessage | null> {
   const { data: order } = await db
     .from("orders")
-    .select("id, buyer_phone, paystack_reference, events(name)")
+    .select("id, buyer_phone, buyer_email, paystack_reference, events(name)")
     .eq("id", orderId)
     .single();
   if (!order) return null;
@@ -55,7 +67,35 @@ export async function composeTicketMessage(
       ? `Your ticket for ${eventName}.\nCode: ${codes}\n${link}\n\nShow the QR or the code at the gate.`
       : `Your ${tickets.length} tickets for ${eventName}.\nCodes: ${codes}\n${link}\n\nOpen the link for all ${tickets.length}, and send each person their own — a ticket link admits whoever holds it. Show the QR or a code at the gate.`;
 
-  return { recipient: order.buyer_phone, body };
+  return {
+    phone: order.buyer_phone,
+    email: order.buyer_email,
+    eventName,
+    codes: tickets.map((t) => t.code),
+    link,
+    body,
+  };
+}
+
+/**
+ * One outbox row per channel that actually reaches people.
+ *
+ * Email always: checkout requires the address, so every paid order has one. SMS and
+ * WhatsApp only once a real provider is behind them — queueing them into the stub would
+ * show "sent by SMS" on the order page for a message nobody received, and an organiser
+ * reading that at the gate would believe it.
+ */
+function deliveryRows(orderId: string, message: TicketMessage) {
+  const rows: { order_id: string; channel: Channel; recipient: string; body: string }[] = [
+    { order_id: orderId, channel: "email", recipient: message.email, body: message.body },
+  ];
+  if (isChannelLive("sms")) {
+    rows.push(
+      { order_id: orderId, channel: "sms", recipient: message.phone, body: message.body },
+      { order_id: orderId, channel: "whatsapp", recipient: message.phone, body: message.body },
+    );
+  }
+  return rows;
 }
 
 /**
@@ -76,10 +116,7 @@ export async function queueTicketDelivery(db: Db, orderId: string): Promise<void
   const message = await composeTicketMessage(db, orderId);
   if (!message) return;
 
-  await db.from("message_deliveries").insert([
-    { order_id: orderId, channel: "sms", recipient: message.recipient, body: message.body },
-    { order_id: orderId, channel: "whatsapp", recipient: message.recipient, body: message.body },
-  ]);
+  await db.from("message_deliveries").insert(deliveryRows(orderId, message));
 }
 
 /**
@@ -92,11 +129,9 @@ export async function queueTicketResend(db: Db, orderId: string): Promise<number
   const message = await composeTicketMessage(db, orderId);
   if (!message) return 0;
 
-  const { error } = await db.from("message_deliveries").insert([
-    { order_id: orderId, channel: "sms", recipient: message.recipient, body: message.body },
-    { order_id: orderId, channel: "whatsapp", recipient: message.recipient, body: message.body },
-  ]);
+  const rows = deliveryRows(orderId, message);
+  const { error } = await db.from("message_deliveries").insert(rows);
   if (error) throw error;
 
-  return 2;
+  return rows.length;
 }

@@ -167,13 +167,7 @@ export function CartContents({
             autoComplete="tel"
             placeholder="024 123 4567"
           />
-          <Field
-            id="email"
-            label="Email"
-            type="email"
-            autoComplete="email"
-            hint="A backup copy goes here in case the message does not reach your phone."
-          />
+          <Field id="email" label="Email" type="email" autoComplete="email" />
 
           {state.error ? (
             <p role="alert" className="text-sm font-medium text-destructive">
@@ -197,12 +191,10 @@ export function CartContents({
 function Field({
   id,
   label,
-  hint,
   ...props
 }: {
   id: string;
   label: string;
-  hint?: string;
 } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div>
@@ -216,7 +208,6 @@ function Field({
         {...props}
         className="mt-1.5 w-full border border-border bg-card px-3 py-3 text-base focus-visible:border-cta focus-visible:outline-none"
       />
-      {hint ? <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p> : null}
     </div>
   );
 }

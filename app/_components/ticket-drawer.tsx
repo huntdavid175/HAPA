@@ -40,6 +40,12 @@ export function TicketDrawer({
   const { open, setOpen, ticketCount } = useCart();
   const isMobile = useIsMobile();
 
+  const description = unavailableNotice
+    ? "Why tickets are not available."
+    : ticketCount === 0
+      ? "Nothing selected yet. Pick a ticket to get started."
+      : null;
+
   return (
     <Drawer
       open={open}
@@ -50,13 +56,11 @@ export function TicketDrawer({
       <DrawerContent className="theme-night bg-background text-foreground data-[swipe-axis=x]:sm:[--drawer-content-width:30rem]">
         <DrawerHeader className="relative">
           <DrawerTitle>{unavailableNotice ? "Tickets" : "Your tickets"}</DrawerTitle>
-          <DrawerDescription>
-            {unavailableNotice
-              ? "Why tickets are not available."
-              : ticketCount === 0
-                ? "Nothing selected yet. Pick a ticket to get started."
-                : "Change the quantities, then pay. Nothing is charged until you do."}
-          </DrawerDescription>
+
+          {/* Only where it tells the buyer something they cannot already see. Once there
+              are tickets in the cart, the steppers and the total say it better than a
+              line of prose, and the form below already covers what happens on pay. */}
+          {description ? <DrawerDescription>{description}</DrawerDescription> : null}
 
           {/* Swiping is the usual way out, but not everyone can make that gesture and on
               a desktop there is nothing to swipe with. */}

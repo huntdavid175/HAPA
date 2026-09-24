@@ -2,7 +2,8 @@
 
 import { useEffect, useRef } from "react";
 
-import { formatPesewas } from "@/lib/format";
+import { formatPesewas, formatPesewasParts } from "@/lib/format";
+import type { Currency } from "@/lib/currency";
 import type { Price } from "@/lib/pricing";
 import { useCart } from "./cart";
 import { useInView } from "./use-in-view";
@@ -45,7 +46,7 @@ export function TicketPlansSection({
       <p className="mt-2 max-w-[52ch] text-muted-foreground">
         {unavailable
           ? salesClosed
-            ? "Sales have closed. If you already bought a ticket it is still valid — check your WhatsApp or SMS."
+            ? "Sales have closed. If you already bought a ticket it is still valid — check your email."
             : "Every ticket has been sold. If more are released they will appear here."
           : "Pick what suits you. Nothing is charged until you pay."}
       </p>
@@ -94,7 +95,7 @@ export function BuyBar({ cheapest, ...availability }: Availability & { cheapest:
       }`}
       aria-hidden={!show}
     >
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-5">
+      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
         <PriceLabel cheapest={cheapest} />
         <Cta {...availability} />
       </div>
@@ -112,9 +113,7 @@ function PriceLabel({ cheapest }: { cheapest: Price | null }) {
         <p className="text-xs text-muted-foreground">
           {ticketCount} ticket{ticketCount === 1 ? "" : "s"}
         </p>
-        <p className="text-2xl leading-none font-extrabold tabular-nums [font-stretch:105%]">
-          {formatPesewas(totalPesewas, currency ?? undefined)}
-        </p>
+        <Amount pesewas={totalPesewas} currency={currency ?? "GHS"} />
       </div>
     );
   }
@@ -126,10 +125,33 @@ function PriceLabel({ cheapest }: { cheapest: Price | null }) {
   return (
     <div className="min-w-0">
       <p className="text-xs text-muted-foreground">From</p>
-      <p className="text-2xl leading-none font-extrabold tabular-nums [font-stretch:105%]">
-        {formatPesewas(cheapest.pesewas, cheapest.currency)}
-      </p>
+      <Amount pesewas={cheapest.pesewas} currency={cheapest.currency} />
     </div>
+  );
+}
+
+/**
+ * A price set the way the pricing cards set it: the amount large, the symbol and the
+ * pesewas small beside it.
+ *
+ * On a phone this shares one row with the button, and at 320px a full-size
+ * "GH₵50,000.00" ran underneath it and was cut off. Setting only the amount large keeps
+ * the part buyers read and frees about a third of the width. `whitespace-nowrap`
+ * because a price broken over two lines is worse than a small one.
+ */
+function Amount({ pesewas, currency }: { pesewas: number; currency: Currency }) {
+  const price = formatPesewasParts(pesewas, currency);
+  return (
+    <p className="mt-0.5 tabular-nums">
+      <span className="sr-only">{formatPesewas(pesewas, currency)}</span>
+      <span aria-hidden className="flex items-baseline gap-0.5 whitespace-nowrap">
+        <span className="text-xs font-semibold text-muted-foreground">{price.currency}</span>
+        <span className="text-xl leading-none font-extrabold tracking-[-0.02em] sm:text-2xl">
+          {price.amount}
+        </span>
+        <span className="text-xs font-semibold text-muted-foreground">{price.fraction}</span>
+      </span>
+    </p>
   );
 }
 
@@ -145,12 +167,14 @@ function Cta({
   block = false,
 }: Availability & { block?: boolean }) {
   const { ticketCount, setOpen } = useCart();
-  const shape = `${block ? "block w-full" : "shrink-0"} bg-cta px-8 py-3.5 text-center text-[0.95rem] font-bold tracking-[-0.01em] text-cta-foreground transition hover:brightness-95 focus-visible:ring-2 focus-visible:ring-cta focus-visible:ring-offset-4 focus-visible:ring-offset-background focus-visible:outline-none`;
+  // Narrower padding in the phone bar, which the price shares; the rail's block button
+  // has the whole width to itself.
+  const shape = `${block ? "block w-full px-8" : "shrink-0 px-5 sm:px-8"} bg-cta py-3.5 text-center text-[0.95rem] font-bold tracking-[-0.01em] text-cta-foreground transition hover:brightness-95 focus-visible:ring-2 focus-visible:ring-cta focus-visible:ring-offset-4 focus-visible:ring-offset-background focus-visible:outline-none`;
 
   if (soldOut || salesClosed) {
     return (
       <p
-        className={`${block ? "block w-full" : "shrink-0"} border border-border px-7 py-3.5 text-center text-[0.95rem] font-semibold text-muted-foreground`}
+        className={`${block ? "block w-full px-7" : "shrink-0 px-5 sm:px-7"} border border-border py-3.5 text-center text-[0.95rem] font-semibold text-muted-foreground`}
       >
         {salesClosed ? "Sales closed" : "Sold out"}
       </p>

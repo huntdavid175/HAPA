@@ -24,6 +24,7 @@ function useDrawer() {
 }
 
 function Drawer({
+  children,
   modal = true,
   showSwipeHandle = false,
   snapPoints,
@@ -40,21 +41,37 @@ function Drawer({
 
   return (
     <DrawerContext.Provider value={contextValue}>
-      {/* A bottom sheet is fixed to the bottom of the *layout* viewport, and neither iOS
-          Safari nor Android Chrome shrinks that when the software keyboard opens — so the
-          browser's own "scroll the focused field into view" moves the page underneath and
-          leaves the field behind the keyboard. This provider measures the visual viewport
-          instead, adds scroll slack below the field and animates it into the visible band.
-          Applied here rather than per drawer so any drawer holding an input gets it. */}
-      <DrawerPrimitive.VirtualKeyboardProvider>
-        <DrawerPrimitive.Root
-          data-slot="drawer"
-          modal={modal}
-          snapPoints={snapPoints}
-          swipeDirection={swipeDirection}
-          {...props}
-        />
-      </DrawerPrimitive.VirtualKeyboardProvider>
+      <DrawerPrimitive.Root
+        data-slot="drawer"
+        modal={modal}
+        snapPoints={snapPoints}
+        swipeDirection={swipeDirection}
+        {...props}
+      >
+        {/* A bottom sheet is fixed to the bottom of the *layout* viewport, and neither
+            iOS Safari nor Android Chrome shrinks that when the software keyboard opens —
+            so the browser's own "scroll the focused field into view" moves the page
+            underneath and leaves the field behind the keyboard. This measures the visual
+            viewport instead, adds scroll slack below the field and animates it into the
+            visible band. Applied here rather than per drawer so any drawer holding an
+            input gets it.
+
+            Inside `Root`, not around it: it reads the dialog's own store, and the
+            viewport has to be a descendant for the touch handling to reach it. */}
+        {/* `Root` also accepts a render function that receives the open payload, which
+            has to keep working — so wrap what it returns rather than the function. */}
+        {typeof children === "function" ? (
+          (arg: { payload: unknown }) => (
+            <DrawerPrimitive.VirtualKeyboardProvider>
+              {children(arg)}
+            </DrawerPrimitive.VirtualKeyboardProvider>
+          )
+        ) : (
+          <DrawerPrimitive.VirtualKeyboardProvider>
+            {children}
+          </DrawerPrimitive.VirtualKeyboardProvider>
+        )}
+      </DrawerPrimitive.Root>
     </DrawerContext.Provider>
   )
 }

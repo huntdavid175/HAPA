@@ -6,8 +6,31 @@ import { eventUrl, qrSvg } from "@/lib/share";
 import { formatEventDate, formatEventTime, formatPesewas } from "@/lib/format";
 import { cheapestPrice } from "@/lib/pricing";
 import { CopyButton } from "./copy-button";
+import {
+  AlertTriangleIcon,
+  DownloadIcon,
+  ExternalLinkIcon,
+  MessageCircleIcon,
+  QrCodeIcon,
+} from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 
-export const metadata: Metadata = { title: "Share" };
+export const metadata: Metadata = { title: "Share kit" };
 export const dynamic = "force-dynamic";
 
 export default async function SharePage() {
@@ -23,15 +46,20 @@ export default async function SharePage() {
 
   if (!event) {
     return (
-      <main className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
-        <h1 className="text-xl font-bold sm:text-2xl">Share your event</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Create an event first and its link and QR code will appear here.
-        </p>
-        <Link href="/admin/event" className="mt-4 inline-block text-sm underline">
+      <Empty className="border border-dashed">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <QrCodeIcon />
+          </EmptyMedia>
+          <EmptyTitle>No event yet</EmptyTitle>
+          <EmptyDescription>
+            Create an event first and its link and QR code will appear here.
+          </EmptyDescription>
+        </EmptyHeader>
+        <Button nativeButton={false} render={<Link href="/admin/event" />}>
           Set up your event
-        </Link>
-      </main>
+        </Button>
+      </Empty>
     );
   }
 
@@ -64,97 +92,154 @@ export default async function SharePage() {
   const isDraft = event.status === "draft";
   const isLocalhost = url.includes("localhost") || url.includes("127.0.0.1");
 
+  const lines = blurb.split("\n");
+
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
-      <h1 className="text-xl font-bold sm:text-2xl">Share your event</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        One link, one QR code. Both point at the same page — put the QR on posters and send
-        the link in chats.
-      </p>
+    <>
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Share kit</h1>
+        <p className="text-muted-foreground text-sm">
+          One link and one QR code, both to the same page. The QR goes on posters, the link
+          and the post go in chats.
+        </p>
+      </div>
 
       {isDraft ? (
-        <p className="mt-5 rounded-xl border border-warning/40 bg-card p-4 text-sm">
-          <strong className="text-warning">This event is a draft.</strong> Anyone opening
-          the link or scanning the code will see nothing until you publish it. Print
-          posters only after publishing — the link never changes, but the page is blank
-          until then.
-        </p>
+        <Alert>
+          <AlertTriangleIcon />
+          <AlertTitle>This event is a draft</AlertTitle>
+          <AlertDescription>
+            Anyone opening the link or scanning the code sees nothing until you publish.
+            The link never changes, so print posters whenever you like, but publish before
+            they go up.
+          </AlertDescription>
+        </Alert>
       ) : null}
 
       {isLocalhost ? (
-        <p className="mt-4 rounded-xl border border-warning/40 bg-card p-4 text-sm">
-          <strong className="text-warning">This is a localhost link.</strong> It only works
-          on this computer. Set <code className="font-mono">NEXT_PUBLIC_SITE_URL</code> to
-          your real domain before printing anything.
-        </p>
+        <Alert>
+          <AlertTriangleIcon />
+          <AlertTitle>This is a localhost link</AlertTitle>
+          <AlertDescription>
+            It only works on this computer. Set NEXT_PUBLIC_SITE_URL to your real domain
+            before printing anything.
+          </AlertDescription>
+        </Alert>
       ) : null}
 
-      <section className="mt-8">
-        <h2 className="text-lg font-semibold">Link</h2>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <code className="min-w-0 flex-1 overflow-x-auto rounded-lg border border-border bg-card px-3 py-2.5 font-mono text-sm">
-            {url}
-          </code>
-          <CopyButton value={url} />
-        </div>
-      </section>
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        {/* The QR is the one thing here made to be printed, so it gets the big card. */}
+        <Card>
+          <CardHeader>
+            <CardTitle>QR code</CardTitle>
+            <CardDescription>
+              Keep the white border when you place it in a design; a code pressed against
+              artwork often fails to scan. Test it with a phone before printing.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center gap-5">
+            <div className="bg-muted/60 flex w-full justify-center rounded-xl p-6 sm:p-10">
+              <div
+                className="w-full max-w-[280px] rounded-xl bg-white p-3 shadow-sm [&>svg]:h-auto [&>svg]:w-full"
+                /* Server-generated from the event URL by the qrcode library — no user
+                   input reaches this markup. */
+                dangerouslySetInnerHTML={{ __html: svg }}
+              />
+            </div>
 
-      <section className="mt-10">
-        <h2 className="text-lg font-semibold">QR code</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Keep the white border when you place it in a design — a QR pressed against
-          artwork often fails to scan. Test it with a phone before printing.
-        </p>
-
-        <div className="mt-4 flex flex-wrap items-start gap-6">
-          <div
-            className="w-[240px] shrink-0 rounded-xl bg-white p-3 [&>svg]:h-auto [&>svg]:w-full"
-            /* Server-generated from the event URL by the qrcode library — no user input
-               reaches this markup. */
-            dangerouslySetInnerHTML={{ __html: svg }}
-          />
-
-          <div className="flex flex-col gap-2">
-            <a
-              href={`/admin/share/qr?format=png&slug=${event.slug}`}
-              className="rounded-lg border border-border px-3 py-2 text-sm font-medium"
-            >
-              Download PNG (1024px)
-            </a>
-            <a
-              href={`/admin/share/qr?format=svg&slug=${event.slug}`}
-              className="rounded-lg border border-border px-3 py-2 text-sm font-medium"
-            >
-              Download SVG (for print)
-            </a>
-            <p className="max-w-[16rem] text-xs text-muted-foreground">
-              Use the SVG if a designer is laying out the poster — it stays sharp at any
-              size. PNG is fine for social posts.
+            <div className="grid w-full gap-3 sm:grid-cols-2">
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={<a href={`/admin/share/qr?format=svg&slug=${event.slug}`} />}
+              >
+                <DownloadIcon data-icon="inline-start" />
+                SVG for print
+              </Button>
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={<a href={`/admin/share/qr?format=png&slug=${event.slug}`} />}
+              >
+                <DownloadIcon data-icon="inline-start" />
+                PNG, 1024px
+              </Button>
+            </div>
+            <p className="text-muted-foreground text-center text-xs">
+              A designer laying out a poster wants the SVG: it stays sharp at any size. The
+              PNG is fine for social posts.
             </p>
-          </div>
-        </div>
-      </section>
+          </CardContent>
+        </Card>
 
-      <section className="mt-10">
-        <h2 className="text-lg font-semibold">Ready-made post</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Paste this into a WhatsApp group, status or social post.
-        </p>
-        <pre className="mt-3 overflow-x-auto rounded-xl border border-border bg-card p-4 text-sm whitespace-pre-wrap">
-          {blurb}
-        </pre>
-        <div className="mt-3 flex flex-wrap gap-3">
-          <CopyButton value={blurb} label="Copy post" />
-          <a
-            href={whatsappHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
-          >
-            Share on WhatsApp
-          </a>
+        <div className="flex min-w-0 flex-col gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Link</CardTitle>
+              <CardDescription>The same address the QR code opens.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <p className="bg-muted rounded-lg px-3 py-2.5 font-mono text-sm break-all">
+                {url}
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <CopyButton value={url} />
+                <Button
+                  variant="ghost"
+                  nativeButton={false}
+                  render={<a href={url} target="_blank" rel="noreferrer" />}
+                >
+                  <ExternalLinkIcon data-icon="inline-start" />
+                  Open
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Ready-made post</CardTitle>
+              <CardDescription>
+                For a WhatsApp group, a status or a social post. This is how it reads once
+                pasted.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              {/* Shown as the message it becomes, not as raw text in a box: the organiser
+                  is deciding whether it reads well in a chat, so show them a chat. */}
+              <div className="bg-muted/60 rounded-xl p-4">
+                <div className="bg-card relative max-w-[26rem] rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-sm shadow-sm ring-1 ring-foreground/5">
+                  <p className="font-semibold">{lines[0]}</p>
+                  {lines.slice(1).map((line, i) =>
+                    line === "" ? (
+                      <div key={i} className="h-2" />
+                    ) : line.startsWith("Get your ticket:") ? (
+                      <p key={i}>
+                        Get your ticket:{" "}
+                        <span className="text-highlight break-all underline">
+                          {url}
+                        </span>
+                      </p>
+                    ) : (
+                      <p key={i} className="text-muted-foreground">
+                        {line}
+                      </p>
+                    ),
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <Button nativeButton={false} render={<a href={whatsappHref} target="_blank" rel="noopener noreferrer" />}>
+                  <MessageCircleIcon data-icon="inline-start" />
+                  Share on WhatsApp
+                </Button>
+                <CopyButton value={blurb} label="Copy post" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </section>
-    </main>
+      </div>
+    </>
   );
 }

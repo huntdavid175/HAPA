@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requireAdmin } from "@/lib/auth";
+import { isChannelLive } from "@/lib/messaging";
 import { createClient } from "@/lib/supabase/server";
 import { runDeliveryWorker } from "@/lib/messaging/worker";
 
@@ -20,6 +21,8 @@ const schema = z.object({
     .max(480, "Keep it under 480 characters — longer messages cost more to send"),
   channels: z.array(z.enum(["sms", "whatsapp", "email"])).min(1, "Pick at least one channel"),
   whatsappTemplate: z.string().trim().optional(),
+  // Email only. Blank falls back to "An update about <event>" at send time.
+  subject: z.string().trim().max(120, "Keep the subject under 120 characters").optional(),
   tierId: z.string().optional(),
   checkedIn: z.enum(["any", "yes", "no"]).default("any"),
 });
@@ -42,6 +45,7 @@ export async function createBroadcast(
     body: formData.get("body"),
     channels: formData.getAll("channels"),
     whatsappTemplate: formData.get("whatsappTemplate") || undefined,
+    subject: formData.get("subject") || undefined,
     tierId: formData.get("tierId") || undefined,
     checkedIn: formData.get("checkedIn") || "any",
   });
@@ -50,10 +54,21 @@ export async function createBroadcast(
     return { error: parsed.error.issues[0]?.message ?? "Check the message", ok: null };
   }
 
-  const { eventId, body, channels, whatsappTemplate, tierId, checkedIn } = parsed.data;
+  const { eventId, body, channels, whatsappTemplate, subject, tierId, checkedIn } =
+    parsed.data;
 
   // WhatsApp cannot carry free-form business-initiated messages. The database enforces
   // this too, but failing here gives a message the organizer can act on.
+  // The page disables these, but the rule belongs here: a message on a channel with no
+  // provider is recorded as sent and reaches nobody.
+  const dead = channels.filter((c) => !isChannelLive(c));
+  if (dead.length) {
+    return {
+      error: `${dead.map((c) => (c === "sms" ? "SMS" : c === "whatsapp" ? "WhatsApp" : "Email")).join(" and ")} ${dead.length === 1 ? "is" : "are"} not connected yet. Untick ${dead.length === 1 ? "it" : "them"} to send.`,
+      ok: null,
+    };
+  }
+
   if (channels.includes("whatsapp") && !whatsappTemplate) {
     return {
       error:
@@ -77,6 +92,7 @@ export async function createBroadcast(
       channels,
       body,
       whatsapp_template: whatsappTemplate ?? null,
+      subject: channels.includes("email") && subject ? subject : null,
       audience_filter: audience,
       status: "draft",
     })

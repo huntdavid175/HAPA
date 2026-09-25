@@ -8,8 +8,16 @@ import {
   TicketIcon,
 } from "lucide-react";
 
-import { getEventStats } from "@/lib/admin/stats";
-import { formatPesewas, formatTotals, formatEventDate, formatEventTime } from "@/lib/format";
+import { getEventStats, type TierStat } from "@/lib/admin/stats";
+import {
+  formatPesewas,
+  formatTotals,
+  formatEventDate,
+  formatEventTime,
+  formatRelativeTime,
+  formatTimestamp,
+} from "@/lib/format";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,15 +37,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Progress } from "@/components/ui/progress";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 
 export const metadata: Metadata = { title: "Overview" };
 export const dynamic = "force-dynamic";
@@ -65,6 +64,12 @@ export default async function AdminOverviewPage() {
   }
 
   const needsAttention = stats.failedDeliveries > 0 || stats.unprocessedWebhooks > 0;
+
+  // Capacity still on offer. An off-sale tier's unsold seats are not seats anyone can buy.
+  const totalCapacity = stats.tiers.reduce(
+    (sum, t) => sum + (t.active ? t.capacity : t.sold),
+    0,
+  );
 
   return (
     <>
@@ -134,36 +139,34 @@ export default async function AdminOverviewPage() {
         <Card>
           <CardHeader>
             <CardTitle>Tiers</CardTitle>
-            <CardDescription>How each ticket type is selling.</CardDescription>
+            <CardDescription>
+              {totalCapacity > 0
+                ? `${stats.ticketsSold.toLocaleString()} of ${totalCapacity.toLocaleString()} tickets sold.`
+                : "How each ticket type is selling."}
+            </CardDescription>
             <CardAction>
               <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/admin/event" />}>
                 Edit
               </Button>
             </CardAction>
           </CardHeader>
-          <CardContent className="flex flex-col gap-5">
-            {stats.tiers.map((tier) => {
-              const pct = Math.round((tier.sold / tier.capacity) * 100);
-              return (
-                <div key={tier.id} className="flex flex-col gap-2">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="font-medium">{tier.name}</span>
-                    <span className="text-muted-foreground text-sm tabular-nums">
-                      {formatPesewas(tier.pricePesewas, tier.currency)} · {tier.sold}/{tier.capacity}
-                      {tier.held > 0 ? ` · ${tier.held} held` : ""}
-                    </span>
-                  </div>
-                  <Progress value={pct} aria-label={`${tier.name} sold`} />
-                </div>
-              );
-            })}
+          <CardContent>
+            <ul className="flex flex-col gap-5">
+              {stats.tiers.map((tier) => (
+                <TierRow key={tier.id} tier={tier} />
+              ))}
+            </ul>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle>Recent purchases</CardTitle>
-            <CardDescription>The last few orders to come through.</CardDescription>
+            <CardDescription>
+              {stats.paidOrders > stats.recentOrders.length
+                ? `The latest ${stats.recentOrders.length} of ${stats.paidOrders} orders.`
+                : "Every order so far, newest first."}
+            </CardDescription>
             <CardAction>
               <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/admin/buyers" />}>
                 All buyers
@@ -176,38 +179,50 @@ export default async function AdminOverviewPage() {
                 No tickets sold yet. Purchases appear here as they happen.
               </p>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Buyer</TableHead>
-                    <TableHead>Tickets</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {stats.recentOrders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell>
-                        <Link
-                          href={`/admin/orders/${order.id}`}
-                          className="font-medium underline-offset-4 hover:underline"
-                        >
-                          {order.buyerName}
-                        </Link>
-                        <div className="text-muted-foreground text-xs">
-                          {order.buyerPhone}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{order.ticketCount}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {formatPesewas(order.totalPesewas, order.currency)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              // Capped at five so the card sits level with Tiers beside it; the whole list
+              // is one click away in Buyers. Each row answers "who, how much, how long
+              // ago" — the phone number lives on the order page, not here.
+              <ul className="-mx-2 flex flex-col">
+                {stats.recentOrders.map((order) => (
+                  <li key={order.id}>
+                    <Link
+                      href={`/admin/orders/${order.id}`}
+                      className="hover:bg-muted focus-visible:ring-ring/50 flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors outline-none focus-visible:ring-[3px]"
+                    >
+                      <Avatar>
+                        <AvatarFallback className="text-xs font-medium">
+                          {initials(order.buyerName)}
+                        </AvatarFallback>
+                      </Avatar>
+
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{order.buyerName}</p>
+                        <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                          <TicketIcon aria-hidden className="size-3.5" />
+                          <span className="truncate">
+                            {order.ticketCount} ticket{order.ticketCount === 1 ? "" : "s"}
+                            {order.channel ? ` by ${channelLabel(order.channel)}` : ""}
+                          </span>
+                        </p>
+                      </div>
+
+                      <div className="shrink-0 text-right">
+                        <p className="text-sm font-medium tabular-nums">
+                          {formatPesewas(order.totalPesewas, order.currency)}
+                        </p>
+                        <p className="text-muted-foreground text-xs">
+                          <time
+                            dateTime={order.createdAt}
+                            title={formatTimestamp(order.createdAt, stats.timezone)}
+                          >
+                            {formatRelativeTime(order.createdAt, stats.timezone)}
+                          </time>
+                        </p>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             )}
           </CardContent>
         </Card>
@@ -245,4 +260,86 @@ function Stat({
       ) : null}
     </Card>
   );
+}
+
+/**
+ * One tier: what it has earned, what it costs, and how full it is.
+ *
+ * The bar is the one piece of colour on the card, and it carries two numbers: sold in
+ * solid colour, held (buyers mid-payment right now) as a faint tint beyond it. A tier
+ * that has sold anything always shows at least a sliver — 3 of 500 is 0.6%, which at
+ * full precision draws nothing and reads as "no sales".
+ */
+function TierRow({ tier }: { tier: TierStat }) {
+  const soldPct = tier.capacity ? (tier.sold / tier.capacity) * 100 : 0;
+  const heldPct = tier.capacity ? (tier.held / tier.capacity) * 100 : 0;
+  const soldWidth = tier.sold > 0 ? Math.max(soldPct, 1.5) : 0;
+  const heldWidth = tier.held > 0 ? Math.max(heldPct, 1.5) : 0;
+  const soldOut = tier.active && tier.available === 0;
+
+  return (
+    <li className={tier.active ? undefined : "opacity-60"}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
+            <span className="break-words">{tier.name}</span>
+            {soldOut ? <Badge variant="secondary">Sold out</Badge> : null}
+            {!tier.active ? <Badge variant="outline">Off sale</Badge> : null}
+          </p>
+          <p className="text-muted-foreground mt-0.5 text-xs tabular-nums">
+            {formatPesewas(tier.pricePesewas, tier.currency)} each
+          </p>
+        </div>
+        <div className="shrink-0 text-right">
+          {tier.revenue.length ? (
+            <p className="text-sm font-medium tabular-nums">{formatTotals(tier.revenue)}</p>
+          ) : (
+            <p className="text-muted-foreground text-sm">No sales yet</p>
+          )}
+          <p className="text-muted-foreground mt-0.5 text-xs tabular-nums">
+            {tier.sold.toLocaleString()} of {tier.capacity.toLocaleString()} sold
+          </p>
+        </div>
+      </div>
+
+      <div
+        role="progressbar"
+        aria-label={`${tier.name}: ${tier.sold} of ${tier.capacity} sold${tier.held ? `, ${tier.held} in checkout` : ""}`}
+        aria-valuemin={0}
+        aria-valuemax={tier.capacity}
+        aria-valuenow={tier.sold}
+        className="bg-muted mt-2.5 flex h-1.5 overflow-hidden rounded-full"
+      >
+        <div className="bg-primary h-full" style={{ width: `${soldWidth}%` }} />
+        <div className="bg-primary/30 h-full" style={{ width: `${heldWidth}%` }} />
+      </div>
+
+      {tier.held > 0 ? (
+        <p className="text-muted-foreground mt-1.5 text-xs tabular-nums">
+          {tier.held} in checkout right now
+        </p>
+      ) : null}
+    </li>
+  );
+}
+
+/** "Jennifer Jacks" → "JJ", "Dzifa" → "DZ". Two letters, so every avatar is one width. */
+function initials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "?";
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+}
+
+/** Paystack's channel names, as a buyer would say them. */
+function channelLabel(channel: string): string {
+  const labels: Record<string, string> = {
+    mobile_money: "mobile money",
+    card: "card",
+    bank: "bank",
+    bank_transfer: "bank transfer",
+    ussd: "USSD",
+    qr: "QR",
+  };
+  return labels[channel] ?? channel.replace(/_/g, " ");
 }

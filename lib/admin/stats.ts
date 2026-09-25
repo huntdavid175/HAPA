@@ -10,6 +10,14 @@ export type TierStat = {
   pricePesewas: number;
   currency: Currency;
   capacity: number;
+  /** False once removed from sale. Still listed: its sales are still money taken. */
+  active: boolean;
+  /**
+   * What this tier has brought in, from the paid order lines at the price each buyer
+   * actually paid — not sold × today's price, which is wrong once a price has changed.
+   * One entry per order line; `formatTotals` keeps currencies apart.
+   */
+  revenue: Price[];
   sold: number;
   held: number;
   available: number;
@@ -67,11 +75,11 @@ export async function getEventStats(): Promise<EventStats | null> {
   if (eventError) throw eventError;
   if (!event) return null;
 
-  const [tiers, availability, tickets, checkedIn, orders, recent, failed, webhooks] =
+  const [tiers, availability, tickets, checkedIn, orders, recent, failed, webhooks, lines] =
     await Promise.all([
       supabase
         .from("ticket_tiers")
-        .select("id, name, price_pesewas, currency, capacity, position")
+        .select("id, name, price_pesewas, currency, capacity, position, active")
         .eq("event_id", event.id)
         .order("position", { ascending: true })
         .order("created_at", { ascending: true }),
@@ -99,7 +107,7 @@ export async function getEventStats(): Promise<EventStats | null> {
         .eq("event_id", event.id)
         .eq("status", "paid")
         .order("created_at", { ascending: false })
-        .limit(10),
+        .limit(5),
       supabase
         .from("message_deliveries")
         .select("id", { count: "exact", head: true })
@@ -108,7 +116,23 @@ export async function getEventStats(): Promise<EventStats | null> {
         .from("webhook_events")
         .select("id", { count: "exact", head: true })
         .is("processed_at", null),
+      supabase
+        .from("order_items")
+        .select("tier_id, quantity, unit_price_pesewas, orders!inner(status, currency, event_id)")
+        .eq("orders.event_id", event.id)
+        .eq("orders.status", "paid"),
     ]);
+
+  const revenueByTier = new Map<string, Price[]>();
+  for (const line of lines.data ?? []) {
+    const order = line.orders as unknown as { currency: string };
+    const entries = revenueByTier.get(line.tier_id) ?? [];
+    entries.push({
+      pesewas: line.unit_price_pesewas * line.quantity,
+      currency: toCurrency(order.currency),
+    });
+    revenueByTier.set(line.tier_id, entries);
+  }
 
   const availabilityByTier = new Map(
     (availability.data ?? []).map((a) => [a.tier_id, a]),
@@ -136,6 +160,8 @@ export async function getEventStats(): Promise<EventStats | null> {
         pricePesewas: t.price_pesewas,
         currency: toCurrency(t.currency),
         capacity: t.capacity,
+        active: t.active,
+        revenue: revenueByTier.get(t.id) ?? [],
         sold: a?.sold ?? 0,
         held: a?.held ?? 0,
         available: a?.available ?? t.capacity,

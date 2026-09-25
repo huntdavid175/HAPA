@@ -140,3 +140,30 @@ export function formatTimestamp(iso: string, timeZone: string): string {
     timeZone,
   }).format(new Date(iso));
 }
+
+/**
+ * "just now", "12 min ago", "3 hr ago", "yesterday", then a plain date.
+ *
+ * For lists whose point is recency, like the dashboard's recent purchases, where "12 min
+ * ago" answers the question at a glance and "24 Sept, 11:44 pm" makes you do the sum.
+ * Past a week the gap stops meaning anything, so it falls back to the date in the venue's
+ * timezone. Rendered on the server per request, so it never drifts on a stale tab.
+ */
+export function formatRelativeTime(iso: string, timeZone: string, now = Date.now()): string {
+  const seconds = Math.round((now - new Date(iso).getTime()) / 1000);
+  if (seconds < 60) return "just now";
+
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} hr ago`;
+
+  const days = Math.round(hours / 24);
+  if (days === 1) return "yesterday";
+  if (days < 7) return `${days} days ago`;
+
+  return new Intl.DateTimeFormat("en-GH", { day: "numeric", month: "short", timeZone }).format(
+    new Date(iso),
+  );
+}

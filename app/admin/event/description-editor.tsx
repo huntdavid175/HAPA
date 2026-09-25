@@ -34,9 +34,12 @@ import { Toggle } from "@/components/ui/toggle";
 export function DescriptionEditor({
   name,
   defaultValue,
+  form,
 }: {
   name: string;
   defaultValue: string;
+  /** The form this posts with, when the editor is not inside it. */
+  form?: string;
 }) {
   const [html, setHtml] = useState(defaultValue);
 
@@ -62,7 +65,7 @@ export function DescriptionEditor({
     editorProps: {
       attributes: {
         class:
-          "min-h-48 w-full px-3 py-2.5 text-base outline-none [&_h3]:mt-4 [&_h3]:text-lg [&_h3]:font-semibold [&_h4]:mt-3 [&_h4]:font-semibold [&_p]:mt-2 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mt-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_blockquote]:mt-2 [&_blockquote]:border-l-2 [&_blockquote]:pl-3 [&_a]:underline [&_:first-child]:mt-0",
+          "min-h-48 max-h-[28rem] overflow-y-auto w-full px-3 py-2.5 text-base outline-none [&_h3]:mt-4 [&_h3]:text-lg [&_h3]:font-semibold [&_h4]:mt-3 [&_h4]:font-semibold [&_p]:mt-2 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mt-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_blockquote]:mt-2 [&_blockquote]:border-l-2 [&_blockquote]:pl-3 [&_a]:underline [&_:first-child]:mt-0",
       },
     },
     onUpdate: ({ editor }) => setHtml(editor.getHTML()),
@@ -139,7 +142,7 @@ export function DescriptionEditor({
       </div>
 
       <EditorContent editor={editor} />
-      <input type="hidden" name={name} value={html} />
+      <input type="hidden" name={name} value={html} form={form} />
     </div>
   );
 }

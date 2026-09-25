@@ -80,10 +80,13 @@ export function ScheduleFields({
   defaultStartsAtLocal,
   defaultEndsAtLocal,
   defaultTimezone,
+  form,
 }: {
   defaultStartsAtLocal: string;
   defaultEndsAtLocal: string;
   defaultTimezone: string;
+  /** The form these post with, when the fields are not inside it. */
+  form?: string;
 }) {
   const start = useMemo(() => fromLocalInput(defaultStartsAtLocal), [defaultStartsAtLocal]);
   const end = useMemo(() => fromLocalInput(defaultEndsAtLocal), [defaultEndsAtLocal]);
@@ -225,13 +228,19 @@ export function ScheduleFields({
       </Field>
 
       {/* What actually posts. */}
-      <input type="hidden" name="startsAt" value={toLocalInput(from, startTime)} />
+      <input
+        type="hidden"
+        name="startsAt"
+        value={toLocalInput(from, startTime)}
+        form={form}
+      />
       <input
         type="hidden"
         name="endsAt"
         value={showEnd ? toLocalInput(to, endTime) : ""}
+        form={form}
       />
-      <input type="hidden" name="timezone" value={timezone} />
+      <input type="hidden" name="timezone" value={timezone} form={form} />
     </div>
   );
 }

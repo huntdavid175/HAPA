@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 
-import { Badge } from "@/components/ui/badge";
+import { ExternalLinkIcon } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -11,6 +13,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { ensureRichText } from "@/lib/rich-text";
 import { utcIsoToLocalInput } from "@/lib/datetime";
+import { eventUrl } from "@/lib/share";
 import { EventForm, StatusForm, type EventFormValues } from "./forms";
 import { TierList } from "./tier-list";
 
@@ -67,46 +70,104 @@ export default async function EventAdminPage() {
   return (
     <>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {event ? "Event settings" : "Create your event"}
+        <div className="flex min-w-0 flex-col gap-1">
+          <h1 className="text-2xl font-semibold tracking-tight text-balance">
+            {event ? event.name : "Create your event"}
           </h1>
           <p className="text-muted-foreground text-sm">
-            What buyers see, when it runs, and what they can buy.
+            {event
+              ? "What buyers see, when it runs, and what they can buy."
+              : "Start with the name and date. Tiers come once the event exists."}
           </p>
         </div>
 
         {event ? (
-          <div className="flex items-center gap-3">
-            <Badge variant={event.status === "published" ? "default" : "secondary"}>
-              {event.status}
-            </Badge>
-            <StatusForm id={event.id} status={event.status} />
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            nativeButton={false}
+            render={<a href={`/e/${event.slug}`} target="_blank" rel="noreferrer" />}
+          >
+            <ExternalLinkIcon data-icon="inline-start" />
+            View event page
+          </Button>
         ) : null}
       </div>
 
-      <Card>
-        <CardContent>
-          <EventForm event={defaults} />
-        </CardContent>
-      </Card>
-
-      {event ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Ticket tiers</CardTitle>
-            <CardDescription>
-              Each tier has its own price and capacity, and sells out independently.
-              Drag to set the order buyers see them in.
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent>
-            <TierList eventId={event.id} tiers={tiers ?? []} />
-          </CardContent>
-        </Card>
-      ) : null}
+      <EventForm
+        event={defaults}
+        linkPrefix={eventUrl("")}
+        statusCard={
+          event ? <StatusCard id={event.id} status={event.status} /> : undefined
+        }
+        tiersCard={
+          event ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Ticket tiers</CardTitle>
+                <CardDescription>
+                  Each tier has its own price and capacity, and sells out on its own. Drag
+                  to set the order buyers see them in.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <TierList eventId={event.id} tiers={tiers ?? []} />
+              </CardContent>
+            </Card>
+          ) : undefined
+        }
+      />
     </>
+  );
+}
+
+/** What each status means for a buyer, since the raw word does not say. */
+const STATUS: Record<string, { label: string; tone: "live" | "paused" | "off"; means: string }> = {
+  published: {
+    label: "Live",
+    tone: "live",
+    means: "Anyone with the link can see the event page and buy tickets.",
+  },
+  sales_closed: {
+    label: "Sales closed",
+    tone: "paused",
+    means: "The page is up and tickets already sold still work, but nobody can buy more.",
+  },
+  draft: {
+    label: "Draft",
+    tone: "off",
+    means: "Only admins can see this event. Publish it to put the page live.",
+  },
+};
+
+function StatusCard({ id, status }: { id: string; status: string }) {
+  const info = STATUS[status] ?? { label: status, tone: "off" as const, means: "" };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Status</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="flex items-start gap-3">
+          {/* A lit dot for live, so the one state that takes money reads at a glance. */}
+          <span
+            aria-hidden
+            className={
+              info.tone === "live"
+                ? "bg-success ring-success/25 mt-1.5 size-2.5 shrink-0 rounded-full ring-4"
+                : info.tone === "paused"
+                  ? "bg-warning mt-1.5 size-2.5 shrink-0 rounded-full"
+                  : "bg-muted-foreground/50 mt-1.5 size-2.5 shrink-0 rounded-full"
+            }
+          />
+          <div className="flex flex-col gap-1">
+            <p className="text-sm font-medium">{info.label}</p>
+            <p className="text-muted-foreground text-sm">{info.means}</p>
+          </div>
+        </div>
+        <StatusForm id={id} status={status} />
+      </CardContent>
+    </Card>
   );
 }

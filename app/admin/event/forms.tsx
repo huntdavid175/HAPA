@@ -3,14 +3,21 @@
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 
+import { ImageIcon } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Field,
   FieldDescription,
   FieldGroup,
   FieldLabel,
-  FieldSet,
-  FieldLegend,
 } from "@/components/ui/field";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -94,80 +101,227 @@ export type EventFormValues = {
   timezone: string;
 };
 
-export function EventForm({ event }: { event: EventFormValues }) {
-  const [state, action] = useActionState(saveEvent, initial);
+/** Every event field posts with this form, wherever on the page its card sits. */
+const EVENT_FORM = "event-form";
+
+/**
+ * The event settings page, laid out the way Shopify lays out a product: what buyers read
+ * in a wide main column (details, cover, tiers), settings in a narrow side column
+ * (status, schedule, location, link), each in its own card.
+ *
+ * The event's fields cannot all sit inside one <form>: the tier list and the status
+ * buttons are forms of their own, and forms cannot nest. So the <form> itself is empty
+ * and every field points at it with the `form` attribute. The Save bar does the same,
+ * and reads its pending state from useActionState rather than useFormStatus, which only
+ * sees a form it is rendered inside.
+ */
+export function EventForm({
+  event,
+  linkPrefix,
+  statusCard,
+  tiersCard,
+}: {
+  event: EventFormValues;
+  /** The public URL up to the slug: "https://…/e/". */
+  linkPrefix: string;
+  /** Rendered on the server; absent until the event exists. */
+  statusCard?: React.ReactNode;
+  tiersCard?: React.ReactNode;
+}) {
+  const [state, action, pending] = useActionState(saveEvent, initial);
+  const [slug, setSlug] = useState(event.slug);
+  const [cover, setCover] = useState(event.coverImage);
 
   return (
-    <form action={action}>
-      {event.id ? <input type="hidden" name="id" value={event.id} /> : null}
+    <>
+      <form id={EVENT_FORM} action={action} className="hidden">
+        {event.id ? <input type="hidden" name="id" value={event.id} /> : null}
+      </form>
 
-      <FieldGroup>
-        <FieldSet>
-          <FieldLegend>Details</FieldLegend>
-          <FieldGroup>
-            <Field>
-              <FieldLabel htmlFor="name">Event name</FieldLabel>
-              <Input id="name" name="name" defaultValue={event.name} required />
-            </Field>
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="flex min-w-0 flex-col gap-6">
+          {/* On a phone the side column stacks last, below every tier. Status is what
+              an organiser reaches for first, so there it leads instead. */}
+          {statusCard ? <div className="lg:hidden">{statusCard}</div> : null}
 
-            <div className="grid gap-6 sm:grid-cols-2">
-              <Field>
-                <FieldLabel htmlFor="slug">URL slug</FieldLabel>
-                <Input id="slug" name="slug" defaultValue={event.slug} required />
-                <FieldDescription>
-                  The link you share: /e/<span className="font-mono">your-slug</span>.
-                  Avoid changing it once posters are printed.
-                </FieldDescription>
-              </Field>
+          <Card>
+            <CardHeader>
+              <CardTitle>Details</CardTitle>
+              <CardDescription>The name and story at the top of the event page.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="name">Event name</FieldLabel>
+                  <Input
+                    id="name"
+                    name="name"
+                    form={EVENT_FORM}
+                    defaultValue={event.name}
+                    required
+                  />
+                </Field>
 
+                <Field>
+                  <FieldLabel>Description</FieldLabel>
+                  <DescriptionEditor
+                    name="description"
+                    form={EVENT_FORM}
+                    defaultValue={event.description}
+                  />
+                  <FieldDescription>
+                    Headings, lists and links are kept. Everything else is stripped before
+                    it is saved.
+                  </FieldDescription>
+                </Field>
+              </FieldGroup>
+            </CardContent>
+          </Card>
+
+          <CoverCard value={cover} onChange={setCover} />
+
+          {tiersCard}
+        </div>
+
+        <div className="flex flex-col gap-6">
+          {statusCard ? <div className="hidden lg:block">{statusCard}</div> : null}
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Schedule</CardTitle>
+              <CardDescription>Shown in the venue&rsquo;s own time.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScheduleFields
+                form={EVENT_FORM}
+                defaultStartsAtLocal={event.startsAtLocal}
+                defaultEndsAtLocal={event.endsAtLocal}
+                defaultTimezone={event.timezone}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Location</CardTitle>
+            </CardHeader>
+            <CardContent>
               <Field>
                 <FieldLabel htmlFor="venue">Venue</FieldLabel>
-                <Input id="venue" name="venue" defaultValue={event.venue} />
+                <Input
+                  id="venue"
+                  name="venue"
+                  form={EVENT_FORM}
+                  defaultValue={event.venue}
+                  placeholder="Manhyia Palace, Kumasi"
+                />
               </Field>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Link</CardTitle>
+              <CardDescription>
+                The address on your posters and QR codes. Avoid changing it once they are
+                printed.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Field>
+                <FieldLabel htmlFor="slug">URL slug</FieldLabel>
+                <Input
+                  id="slug"
+                  name="slug"
+                  form={EVENT_FORM}
+                  value={slug}
+                  onChange={(e) => setSlug(e.target.value)}
+                  required
+                />
+                <FieldDescription className="break-all">
+                  {linkPrefix}
+                  <span className="text-foreground font-medium">{slug || "your-slug"}</span>
+                </FieldDescription>
+              </Field>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Pinned to the bottom of the screen, so saving never means scrolling back past
+          a long description to find the button. */}
+      <div className="bg-background/85 supports-backdrop-filter:backdrop-blur-md sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center justify-end gap-x-4 gap-y-2 border-t px-4 py-3 md:-mx-6 md:px-6">
+        <div className="mr-auto min-w-0 text-sm">
+          {state.error || state.ok ? (
+            <Feedback state={state} />
+          ) : (
+            <p className="text-muted-foreground">
+              Ticket tiers save on their own. This saves everything else.
+            </p>
+          )}
+        </div>
+        <Button type="submit" form={EVENT_FORM} disabled={pending}>
+          {pending ? <Spinner data-icon="inline-start" /> : null}
+          {pending ? "Saving…" : event.id ? "Save event" : "Create event"}
+        </Button>
+      </div>
+    </>
+  );
+}
+
+/**
+ * The poster, shown as it will appear. A URL alone gives no hint that it points at the
+ * wrong image, or at nothing — the preview does, before a buyer sees it.
+ */
+function CoverCard({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [failed, setFailed] = useState<string | null>(null);
+  const looksLikeUrl = /^https?:\/\/\S+$/.test(value.trim());
+  const broken = failed === value;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Cover image</CardTitle>
+        <CardDescription>
+          The poster at the top of the event page, shown whole, so artwork with the name
+          and dates on it works well.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="bg-muted flex aspect-video items-center justify-center overflow-hidden rounded-lg">
+          {looksLikeUrl && !broken ? (
+            // eslint-disable-next-line @next/next/no-img-element -- any host an organiser pastes; next/image needs each one configured
+            <img
+              src={value.trim()}
+              alt="Cover image preview"
+              className="h-full w-full object-contain"
+              onError={() => setFailed(value)}
+            />
+          ) : (
+            <div className="text-muted-foreground flex flex-col items-center gap-2 px-6 text-center text-sm">
+              <ImageIcon className="size-6" />
+              {broken
+                ? "That address did not load as an image. Check it opens on its own."
+                : "No cover yet. The event page uses a plain background until you add one."}
             </div>
+          )}
+        </div>
 
-            <Field>
-              <FieldLabel>Description</FieldLabel>
-              <DescriptionEditor name="description" defaultValue={event.description} />
-              <FieldDescription>
-                Headings, lists and links are kept. Everything else is stripped before it
-                is saved.
-              </FieldDescription>
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor="coverImage">Cover image URL</FieldLabel>
-              <Input
-                id="coverImage"
-                name="coverImage"
-                type="url"
-                inputMode="url"
-                placeholder="https://…"
-                defaultValue={event.coverImage}
-              />
-              <FieldDescription>
-                The poster at the top of the event page. It is shown whole, so artwork
-                with the name and dates on it works well.
-              </FieldDescription>
-            </Field>
-          </FieldGroup>
-        </FieldSet>
-
-        <FieldSet>
-          <FieldLegend>Schedule</FieldLegend>
-          <ScheduleFields
-            defaultStartsAtLocal={event.startsAtLocal}
-            defaultEndsAtLocal={event.endsAtLocal}
-            defaultTimezone={event.timezone}
+        <Field>
+          <FieldLabel htmlFor="coverImage">Image URL</FieldLabel>
+          <Input
+            id="coverImage"
+            name="coverImage"
+            form={EVENT_FORM}
+            type="url"
+            inputMode="url"
+            placeholder="https://…"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
           />
-        </FieldSet>
-
-        <Field orientation="horizontal">
-          <Submit label="Save event" />
-          <Feedback state={state} />
         </Field>
-      </FieldGroup>
-    </form>
+      </CardContent>
+    </Card>
   );
 }
 

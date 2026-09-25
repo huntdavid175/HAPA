@@ -31,6 +31,7 @@ const eventSchema = z.object({
     .max(80)
     .regex(slugPattern, "Slug can only use lowercase letters, numbers and hyphens"),
   description: z.string().trim().max(20000).default(""),
+  bookingInfo: z.string().trim().max(5000).default(""),
   venue: z.string().trim().max(300).default(""),
   // An upload to the `event-covers` bucket, or the event's current cover left as it is
   // (checked below). Empty means "no cover" — the page has a plain header for that.
@@ -53,6 +54,7 @@ export async function saveEvent(
     name: formData.get("name"),
     slug: formData.get("slug"),
     description: formData.get("description") ?? "",
+    bookingInfo: formData.get("bookingInfo") ?? "",
     venue: formData.get("venue") ?? "",
     coverImage: formData.get("coverImage") ?? "",
     startsAt: formData.get("startsAt"),
@@ -69,6 +71,8 @@ export async function saveEvent(
   // public page does not depend on remembering to clean it every time.
   const cleaned = sanitizeRichText(parsed.data.description);
   const description = isRichTextEmpty(cleaned) ? "" : cleaned;
+  const cleanedBooking = sanitizeRichText(parsed.data.bookingInfo);
+  const bookingInfo = isRichTextEmpty(cleanedBooking) ? "" : cleanedBooking;
   const supabase = await createClient();
 
   // Covers are uploaded, not pasted, so a new value has to be one of ours. A cover set
@@ -100,6 +104,7 @@ export async function saveEvent(
     name,
     slug,
     description,
+    booking_info: bookingInfo,
     venue,
     // Stored as null rather than "" so `cover_image ? ... : ...` on the public page is
     // the only check the renderer needs.

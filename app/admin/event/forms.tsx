@@ -101,6 +101,8 @@ export type EventFormValues = {
   name: string;
   slug: string;
   description: string;
+  /** Rich text shown under the ticket cards. */
+  bookingInfo: string;
   venue: string;
   coverImage: string;
   /** Pre-formatted as YYYY-MM-DDTHH:mm, already in the event's timezone. */
@@ -190,6 +192,32 @@ export function EventForm({
           <CoverCard value={cover} onChange={setCover} />
 
           {tiersCard}
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Bookings &amp; contact</CardTitle>
+              <CardDescription>
+                Shown under the ticket cards: who to call or email for tables, group
+                bookings and questions. Paste it straight from WhatsApp — bold and italics
+                carry over, and phone numbers, emails and links become tappable.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Field>
+                <FieldLabel htmlFor="bookingInfo" className="sr-only">
+                  Bookings and contact
+                </FieldLabel>
+                <DescriptionEditor
+                  id="bookingInfo"
+                  name="bookingInfo"
+                  form={EVENT_FORM}
+                  defaultValue={event.bookingInfo}
+                  compact
+                />
+                <FieldDescription>Leave it empty to show nothing.</FieldDescription>
+              </Field>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="flex flex-col gap-6">

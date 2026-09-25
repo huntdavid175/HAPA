@@ -110,6 +110,7 @@ export type Database = {
       }
       events: {
         Row: {
+          booking_info: string
           cover_image: string | null
           created_at: string
           currency: string
@@ -125,6 +126,7 @@ export type Database = {
           venue: string
         }
         Insert: {
+          booking_info?: string
           cover_image?: string | null
           created_at?: string
           currency?: string
@@ -140,6 +142,7 @@ export type Database = {
           venue?: string
         }
         Update: {
+          booking_info?: string
           cover_image?: string | null
           created_at?: string
           currency?: string

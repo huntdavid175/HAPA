@@ -12,6 +12,7 @@ import {
   ensureRichText,
   isRichTextEmpty,
 } from "../lib/rich-text.ts";
+import { whatsappToHtml } from "../lib/whatsapp-text.ts";
 
 let failures = 0;
 
@@ -54,6 +55,29 @@ check("https link kept", clean.includes("hapawards.com"));
 check("link carries noopener", clean.includes("noopener"), clean);
 check("link opens in a new tab", clean.includes('target="_blank"'));
 check("b is folded into strong", sanitizeRichText("<b>x</b>").includes("<strong>"));
+
+const dial = sanitizeRichText(`<a href="tel:+18185659533" target="_blank">call</a>`);
+check("tel link kept", dial.includes('href="tel:+18185659533"'), dial);
+check("tel link opens no new tab", !dial.includes("_blank"), dial);
+
+console.log("\nText pasted from WhatsApp keeps its formatting");
+const wa = whatsappToHtml(
+  "*For Bookings:*\nCall +1 (818) 565-9533 or tickets@hapawards.com\nhttp://www.hapawards.com\n\n_Limited Seats._",
+);
+check("*bold* becomes strong", wa.includes("<strong>For Bookings:</strong>"), wa);
+check("_italic_ becomes em", wa.includes("<em>Limited Seats.</em>"), wa);
+check("phone becomes a tel link", wa.includes('href="tel:+18185659533"'), wa);
+check("email becomes a mailto link", wa.includes('href="mailto:tickets@hapawards.com"'), wa);
+check("url becomes a link", wa.includes('href="http://www.hapawards.com"'), wa);
+check("blank line splits paragraphs", wa.split("<p>").length === 3, wa);
+const literal = whatsappToHtml("2*3*4 and snake_case_name, https://x.test/a_b_c");
+check("markers inside words are left alone", !/<(strong|em)>/.test(literal), literal);
+check("underscores in a URL survive", literal.includes('href="https://x.test/a_b_c"'), literal);
+check("pasted markup is escaped", whatsappToHtml("<script>x</script>").includes("&lt;script"));
+check(
+  "survives sanitising",
+  sanitizeRichText(wa).includes("<strong>") && sanitizeRichText(wa).includes("tel:"),
+);
 
 console.log("\nMetadata is plain prose, not markup");
 const plain = richTextToPlain(good);

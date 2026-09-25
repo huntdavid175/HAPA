@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
@@ -19,9 +19,11 @@ import {
 
 import { Separator } from "@/components/ui/separator";
 import { Toggle } from "@/components/ui/toggle";
+import { cn } from "@/lib/utils";
+import { looksLikeWhatsapp, whatsappToHtml } from "@/lib/whatsapp-text";
 
 /**
- * The event description.
+ * The event's rich text: its description, and the bookings block under the tickets.
  *
  * Tiptap rather than a textarea because organisers write running order, day-by-day
  * schedules and links, and asking them to hand-write HTML is not reasonable. The toolbar
@@ -30,18 +32,29 @@ import { Toggle } from "@/components/ui/toggle";
  * What posts is HTML in a hidden input. The server sanitises it against a small allowlist
  * before it is stored, so the database never holds markup the public page has to be
  * careful with — see lib/rich-text.ts.
+ *
+ * Plain text pasted in is read as WhatsApp, where organisers draft their copy first, so
+ * `*bold*` stays bold and phone numbers become tappable (lib/whatsapp-text.ts). A paste
+ * that carries HTML — from a web page or a document — takes Tiptap's normal path.
  */
 export function DescriptionEditor({
   name,
   defaultValue,
   form,
+  compact = false,
+  id,
 }: {
   name: string;
   defaultValue: string;
   /** The form this posts with, when the editor is not inside it. */
   form?: string;
+  /** A shorter box, for a few lines rather than a page of copy. */
+  compact?: boolean;
+  /** Put on the editable area, so a FieldLabel's htmlFor can point at it. */
+  id?: string;
 }) {
   const [html, setHtml] = useState(defaultValue);
+  const editorRef = useRef<Editor | null>(null);
 
   const editor = useEditor({
     extensions: [
@@ -63,10 +76,23 @@ export function DescriptionEditor({
     // during SSR is a guaranteed hydration mismatch.
     immediatelyRender: false,
     editorProps: {
-      attributes: {
-        class:
-          "min-h-48 max-h-[28rem] overflow-y-auto w-full px-3 py-2.5 text-base outline-none [&_h3]:mt-4 [&_h3]:text-lg [&_h3]:font-semibold [&_h4]:mt-3 [&_h4]:font-semibold [&_p]:mt-2 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mt-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_blockquote]:mt-2 [&_blockquote]:border-l-2 [&_blockquote]:pl-3 [&_a]:underline [&_:first-child]:mt-0",
+      handlePaste: (_view, event) => {
+        const data = event.clipboardData;
+        if (!data || data.getData("text/html")) return false;
+        const text = data.getData("text/plain");
+        if (!text || !looksLikeWhatsapp(text)) return false;
+        return editorRef.current?.commands.insertContent(whatsappToHtml(text)) ?? false;
       },
+      attributes: {
+        ...(id ? { id } : {}),
+        class: cn(
+          compact ? "min-h-28" : "min-h-48",
+          "max-h-[28rem] overflow-y-auto w-full px-3 py-2.5 text-base outline-none [&_h3]:mt-4 [&_h3]:text-lg [&_h3]:font-semibold [&_h4]:mt-3 [&_h4]:font-semibold [&_p]:mt-2 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mt-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_blockquote]:mt-2 [&_blockquote]:border-l-2 [&_blockquote]:pl-3 [&_a]:underline [&_:first-child]:mt-0",
+        ),
+      },
+    },
+    onCreate: ({ editor }) => {
+      editorRef.current = editor;
     },
     onUpdate: ({ editor }) => setHtml(editor.getHTML()),
   });

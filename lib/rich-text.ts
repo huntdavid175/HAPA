@@ -33,10 +33,14 @@ const ALLOWED: sanitizeHtml.IOptions = {
   allowProtocolRelative: false,
   transformTags: {
     // Anything the organiser links to is someone else's site. `noopener` stops it
-    // reaching back through `window.opener`.
-    a: sanitizeHtml.simpleTransform("a", {
-      target: "_blank",
-      rel: "noopener noreferrer nofollow",
+    // reaching back through `window.opener`. Phone and email links hand off to the
+    // dialler or mail app, so they get no new tab — on a phone that is a blank one.
+    a: (_tag, attribs): sanitizeHtml.Tag => ({
+      tagName: "a",
+      // Built from the href alone, so a pasted target or rel never carries through.
+      attribs: /^https?:/i.test(attribs.href ?? "")
+        ? { href: attribs.href, target: "_blank", rel: "noopener noreferrer nofollow" }
+        : { href: attribs.href ?? "", rel: "nofollow" },
     }),
     // The editor can emit these; fold them into the tags we allow.
     b: "strong",

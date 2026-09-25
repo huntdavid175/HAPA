@@ -118,6 +118,17 @@ export function EventView({ event }: { event: EventWithTiers }) {
             soldOut={soldOut}
             salesClosed={salesClosed}
           />
+
+          {/* The organiser's own words, sanitised when saved (lib/rich-text.ts). Under the
+              cards because it answers what they cannot: tables, groups, questions. It
+              brings its own heading, if it wants one. */}
+          {event.booking_info ? (
+            <section
+              aria-label="Bookings and contact"
+              className="prose-event mt-14 max-w-[62ch] border-t border-border pt-8 text-sm leading-relaxed text-muted-foreground sm:text-base"
+              dangerouslySetInnerHTML={{ __html: event.booking_info }}
+            />
+          ) : null}
         </div>
 
         <BuyBar

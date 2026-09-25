@@ -234,9 +234,15 @@ Tailwind v4 + shadcn (`base-nova`, **Base UI** primitives, lucide icons).
 
 ## Rich text
 
-The event description is the only field where admin input renders as markup to buyers.
-It is sanitised **on save** (`lib/rich-text.ts`), so the database never holds anything the
-public page has to be careful with. `check:richtext` guards the allowlist.
+The event `description` and `booking_info` (the bookings block under the ticket cards) are
+the only fields where admin input renders as markup to buyers. Both are sanitised **on
+save** (`lib/rich-text.ts`), so the database never holds anything the public page has to
+be careful with. `check:richtext` guards the allowlist.
+
+Plain text pasted into either editor is read as WhatsApp (`lib/whatsapp-text.ts`):
+`*bold*` stays bold rather than becoming Tiptap's Markdown italic, and phone numbers,
+emails and URLs become links. Only `http(s)` links open a new tab — a `tel:` one would
+leave a blank tab on a phone.
 
 `description` also feeds `<meta name="description">`, which is what a WhatsApp link
 preview shows — use `richTextToPlain`, never the raw markup.

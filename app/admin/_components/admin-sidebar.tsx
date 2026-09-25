@@ -6,7 +6,6 @@ import {
   AlertTriangleIcon,
   CalendarDaysIcon,
   LayoutDashboardIcon,
-  LogOutIcon,
   ScanLineIcon,
   Share2Icon,
   TicketIcon,
@@ -28,6 +27,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { SignOutDialog } from "./sign-out-dialog";
 
 /**
  * Grouped by when you reach for them, not alphabetically.
@@ -142,16 +142,7 @@ export function AdminSidebar({
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <form action={signOutAction}>
-              <SidebarMenuButton
-                type="submit"
-                tooltip={`Sign out ${email}`}
-                className="w-full"
-              >
-                <LogOutIcon />
-                <span className="truncate">{email}</span>
-              </SidebarMenuButton>
-            </form>
+            <SignOutDialog email={email} signOutAction={signOutAction} />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

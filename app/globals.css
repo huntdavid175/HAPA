@@ -634,3 +634,25 @@ noscript .noscript-tiers {
     @apply font-sans;
   }
 }
+
+/**
+ * The gate scanner's two movements. The sweep is decoration, so it only runs under
+ * motion-safe; the drain tells staff when the scanner is ready again, so it always runs.
+ */
+@keyframes gate-sweep {
+  from {
+    top: 0;
+  }
+  to {
+    top: calc(100% - 2px);
+  }
+}
+
+@keyframes gate-drain {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}

@@ -161,5 +161,3 @@ preview shows — use `richTextToPlain`, never the raw markup.
   and redeployed, the Paystack return URL and every share QR generated on production are
   dead links.
 - Paystack live keys and a staging project.
-- `app/scan/scanner.tsx` has the repo's only lint errors (`react-hooks/set-state-in-effect`).
-- Staff, broadcasts and the share kit have not been moved to shadcn.

@@ -12,8 +12,6 @@ export type OrderActionState = {
   notice: string | null;
 };
 
-export const emptyOrderActionState: OrderActionState = { error: null, notice: null };
-
 const uuid = z.uuid("Unknown record");
 
 /** Re-render everywhere an order's state is visible, not just the page acted on. */

@@ -12,9 +12,13 @@ import {
   retryDelivery,
   voidTicket,
   markOrderRefunded,
-  emptyOrderActionState,
   type OrderActionState,
 } from "./actions";
+
+// Lives here, not in actions.ts: a "use server" file may export only async functions,
+// and one exported object there stops Next loading the file at all — every action in
+// it (Retry, Resend, Void, Mark refunded) then fails with a 500.
+const emptyOrderActionState: OrderActionState = { error: null, notice: null };
 
 function Submit({
   label,

@@ -6,6 +6,14 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { sanitizeRichText, isRichTextEmpty } from "@/lib/rich-text";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  COVER_BUCKET,
+  COVER_MAX_BYTES,
+  COVER_TYPES,
+  coverPathFromUrl,
+  isCoverType,
+} from "@/lib/cover-image";
 import { localInputToUtcIso } from "@/lib/datetime";
 import { CURRENCIES } from "@/lib/currency";
 
@@ -24,12 +32,9 @@ const eventSchema = z.object({
     .regex(slugPattern, "Slug can only use lowercase letters, numbers and hyphens"),
   description: z.string().trim().max(20000).default(""),
   venue: z.string().trim().max(300).default(""),
-  // Validated as a URL so a typo shows up here rather than as a broken hero on the
-  // buyer's first screen. Empty is allowed and means "no cover" — the page has a
-  // gradient for that case.
-  coverImage: z
-    .union([z.literal(""), z.url("Enter a full image URL, starting http:// or https://")])
-    .default(""),
+  // An upload to the `event-covers` bucket, or the event's current cover left as it is
+  // (checked below). Empty means "no cover" — the page has a plain header for that.
+  coverImage: z.union([z.literal(""), z.url()]).default(""),
   // "2026-10-22T20:00" with no zone; interpreted as venue-local.
   startsAt: z.string().min(1, "Pick the date the event runs"),
   // Empty means no published end time, which the column allows.
@@ -65,6 +70,16 @@ export async function saveEvent(
   const cleaned = sanitizeRichText(parsed.data.description);
   const description = isRichTextEmpty(cleaned) ? "" : cleaned;
   const supabase = await createClient();
+
+  // Covers are uploaded, not pasted, so a new value has to be one of ours. A cover set
+  // by URL before uploads existed is still accepted, but only unchanged.
+  const { data: current } = id
+    ? await supabase.from("events").select("cover_image").eq("id", id).maybeSingle()
+    : { data: null };
+  const previousCover = current?.cover_image ?? null;
+  if (coverImage && coverImage !== previousCover && !coverPathFromUrl(coverImage)) {
+    return { error: "Upload the cover image rather than linking to one", ok: null };
+  }
 
   let startsAtIso: string;
   let endsAtIso: string | null = null;
@@ -105,9 +120,50 @@ export async function saveEvent(
     return { error: error.message, ok: null };
   }
 
+  // The replaced cover is no longer referenced by anything, so it goes. Only after the
+  // save succeeded, and best effort: an orphaned file costs storage, not correctness.
+  const previousPath =
+    previousCover && previousCover !== (coverImage || null)
+      ? coverPathFromUrl(previousCover)
+      : null;
+  if (previousPath) {
+    await createAdminClient().storage.from(COVER_BUCKET).remove([previousPath]);
+  }
+
   revalidatePath("/admin/event");
   revalidatePath("/");
   return { error: null, ok: "Saved" };
+}
+
+export type CoverUpload =
+  | { error: string }
+  | { error: null; path: string; token: string; publicUrl: string };
+
+/**
+ * Lets the browser upload one cover straight to Storage. The file never passes through
+ * a server action, whose request body Next caps at 1 MB, and the browser gets a one-time
+ * token for one path rather than any write access of its own. The bucket rechecks the
+ * size and type when the upload lands.
+ */
+export async function createCoverUpload(type: string, size: number): Promise<CoverUpload> {
+  await requireAdmin();
+
+  if (!isCoverType(type)) return { error: "Use a JPEG, PNG, WebP or AVIF image" };
+  if (!Number.isFinite(size) || size <= 0 || size > COVER_MAX_BYTES) {
+    return { error: "Images can be up to 5 MB" };
+  }
+
+  const path = `${crypto.randomUUID()}.${COVER_TYPES[type]}`;
+  const bucket = createAdminClient().storage.from(COVER_BUCKET);
+  const { data, error } = await bucket.createSignedUploadUrl(path);
+  if (error) return { error: error.message };
+
+  return {
+    error: null,
+    path: data.path,
+    token: data.token,
+    publicUrl: bucket.getPublicUrl(data.path).data.publicUrl,
+  };
 }
 
 const statusSchema = z.object({

@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 
-import { ImageIcon } from "lucide-react";
+import { ImageIcon, Trash2Icon, UploadIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -37,11 +37,20 @@ import {
   CURRENCY_SYMBOLS,
   type Currency,
 } from "@/lib/currency";
+import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
+import {
+  COVER_BUCKET,
+  COVER_MAX_BYTES,
+  COVER_TYPES,
+  isCoverType,
+} from "@/lib/cover-image";
 import { ScheduleFields } from "./schedule-fields";
 import { DescriptionEditor } from "./description-editor";
 import {
   saveEvent,
   saveTier,
+  createCoverUpload,
   setEventStatus,
   deactivateTier,
   type ActionState,
@@ -270,13 +279,58 @@ export function EventForm({
 }
 
 /**
- * The poster, shown as it will appear. A URL alone gives no hint that it points at the
- * wrong image, or at nothing — the preview does, before a buyer sees it.
+ * The poster, shown as it will appear. Picking a file uploads it straight to Storage and
+ * previews it; the event only points at it once "Save event" posts the URL, so an
+ * organiser can try a few before committing. The URL rides in a hidden input, like every
+ * other field here, tied to the event form by its `form` attribute.
  */
 function CoverCard({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
-  const looksLikeUrl = /^https?:\/\/\S+$/.test(value.trim());
-  const broken = failed === value;
+  const broken = Boolean(value) && failed === value;
+
+  async function upload(file: File) {
+    setError(null);
+    if (!isCoverType(file.type)) {
+      setError("Use a JPEG, PNG, WebP or AVIF image.");
+      return;
+    }
+    if (file.size > COVER_MAX_BYTES) {
+      setError("That image is over 5 MB. Export a smaller copy and try again.");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const ticket = await createCoverUpload(file.type, file.size);
+      if (ticket.error !== null) {
+        setError(ticket.error);
+        return;
+      }
+      const { error: uploadError } = await createClient()
+        .storage.from(COVER_BUCKET)
+        .uploadToSignedUrl(ticket.path, ticket.token, file, { contentType: file.type });
+      if (uploadError) {
+        setError(uploadError.message);
+        return;
+      }
+      onChange(ticket.publicUrl);
+    } catch {
+      setError("The upload did not go through. Check your connection and try again.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function pick(files: FileList | null) {
+    const file = files?.[0];
+    if (file) void upload(file);
+    // Cleared so choosing the same file again still fires a change.
+    if (inputRef.current) inputRef.current.value = "";
+  }
 
   return (
     <Card>
@@ -288,11 +342,37 @@ function CoverCard({ value, onChange }: { value: string; onChange: (v: string) =
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <div className="bg-muted flex aspect-video items-center justify-center overflow-hidden rounded-lg">
-          {looksLikeUrl && !broken ? (
-            // eslint-disable-next-line @next/next/no-img-element -- any host an organiser pastes; next/image needs each one configured
+        <input type="hidden" name="coverImage" form={EVENT_FORM} value={value} />
+        <input
+          ref={inputRef}
+          type="file"
+          accept={Object.keys(COVER_TYPES).join(",")}
+          className="sr-only"
+          tabIndex={-1}
+          aria-hidden
+          onChange={(e) => pick(e.target.files)}
+        />
+
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragging(false);
+            if (!uploading) pick(e.dataTransfer.files);
+          }}
+          className={cn(
+            "bg-muted relative flex aspect-video items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-transparent transition-colors",
+            dragging && "border-primary",
+          )}
+        >
+          {value && !broken ? (
+            // eslint-disable-next-line @next/next/no-img-element -- a cover set by URL before uploads may be on any host
             <img
-              src={value.trim()}
+              src={value}
               alt="Cover image preview"
               className="h-full w-full object-contain"
               onError={() => setFailed(value)}
@@ -301,25 +381,51 @@ function CoverCard({ value, onChange }: { value: string; onChange: (v: string) =
             <div className="text-muted-foreground flex flex-col items-center gap-2 px-6 text-center text-sm">
               <ImageIcon className="size-6" />
               {broken
-                ? "That address did not load as an image. Check it opens on its own."
-                : "No cover yet. The event page uses a plain background until you add one."}
+                ? "The current cover no longer loads. Upload a new one."
+                : "No cover yet. Drop an image here, or upload one. The event page uses a plain header until you do."}
             </div>
           )}
+          {uploading ? (
+            <div className="bg-background/70 absolute inset-0 flex items-center justify-center gap-2 text-sm font-medium">
+              <Spinner /> Uploading…
+            </div>
+          ) : null}
         </div>
 
-        <Field>
-          <FieldLabel htmlFor="coverImage">Image URL</FieldLabel>
-          <Input
-            id="coverImage"
-            name="coverImage"
-            form={EVENT_FORM}
-            type="url"
-            inputMode="url"
-            placeholder="https://…"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-          />
-        </Field>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={uploading}
+            onClick={() => inputRef.current?.click()}
+          >
+            <UploadIcon data-icon="inline-start" />
+            {value ? "Replace image" : "Upload image"}
+          </Button>
+          {value ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={uploading}
+              onClick={() => {
+                setError(null);
+                onChange("");
+              }}
+            >
+              <Trash2Icon data-icon="inline-start" />
+              Remove
+            </Button>
+          ) : null}
+          <span className="text-muted-foreground text-sm">JPEG, PNG, WebP or AVIF, up to 5 MB</span>
+        </div>
+
+        {error ? (
+          <p role="alert" className="text-destructive text-sm font-medium">
+            {error}
+          </p>
+        ) : null}
       </CardContent>
     </Card>
   );

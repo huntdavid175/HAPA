@@ -9,9 +9,9 @@ import { BackButton } from "./back-button";
  * the page instead. A 400px field of flat colour is not a design, it is a hole, and most
  * events will be published before anyone gets round to uploading artwork.
  *
- * `cover_image` is a free-text URL an admin pastes in, so it could point anywhere. That
- * rules out `next/image`, which refuses any host not listed in `remotePatterns` and would
- * turn a mistyped URL into a 500 on the buyer's first screen.
+ * New covers are uploaded to the `event-covers` bucket, but one set by URL before uploads
+ * existed may point at any host. That rules out `next/image`, which refuses any host not
+ * listed in `remotePatterns` and would turn it into a 500 on the buyer's first screen.
  */
 export function EventHero({
   src,

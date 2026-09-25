@@ -15,18 +15,12 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { RetryDeliveryForm } from "../orders/forms";
 
 export const metadata: Metadata = { title: "Failed messages" };
 export const dynamic = "force-dynamic";
+
+const CHANNEL_LABELS = { email: "Email", sms: "SMS", whatsapp: "WhatsApp" } as const;
 
 export default async function FailuresPage() {
   await requireAdmin();
@@ -58,22 +52,18 @@ export default async function FailuresPage() {
           </EmptyHeader>
         </Empty>
       ) : (
-        <Card>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Recipient</TableHead>
-                  <TableHead>Error</TableHead>
-                  <TableHead>Attempts</TableHead>
-                  <TableHead className="text-right">Retry</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {failures.map((f) => (
-                  <TableRow key={f.id}>
-                    <TableCell>
-                      <div className="font-medium">
+        // A list, not a table. Each row is one long error sentence and one action; in a
+        // table the error either ran through the neighbouring columns (cells are
+        // nowrap) or, on a phone, pushed Retry off the right edge where it could not be
+        // pressed. Stacked, the error wraps and the button stays put at any width.
+        <Card className="py-0">
+          <CardContent className="px-0">
+            <ul className="divide-y">
+              {failures.map((f) => (
+                <li key={f.id} className="flex flex-col gap-3 px-4 py-4 sm:px-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="font-medium">
                         {f.orderId ? (
                           <Link
                             href={`/admin/orders/${f.orderId}`}
@@ -84,37 +74,32 @@ export default async function FailuresPage() {
                         ) : (
                           "Broadcast"
                         )}
-                      </div>
-                      <div className="text-muted-foreground text-xs">
-                        {f.channel.toUpperCase()} → {f.recipient}
-                      </div>
-                    </TableCell>
-
-                    <TableCell className="text-muted-foreground max-w-xs">
-                      <span className="break-words">{f.error ?? "No error recorded"}</span>
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="flex flex-col items-start gap-1">
-                        <span className="tabular-nums">{f.attempts}</span>
-                        {f.exhausted ? (
-                          <Badge variant="outline">Given up</Badge>
-                        ) : null}
-                        {f.lastAttemptAt ? (
-                          <span className="text-muted-foreground text-xs">
-                            {formatTimestamp(f.lastAttemptAt, tz)}
-                          </span>
-                        ) : null}
-                      </div>
-                    </TableCell>
-
-                    <TableCell className="text-right">
+                      </p>
+                      <p className="text-muted-foreground text-sm break-all">
+                        {CHANNEL_LABELS[f.channel]} to {f.recipient}
+                      </p>
+                    </div>
+                    <div className="shrink-0">
                       <RetryDeliveryForm deliveryId={f.id} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                    </div>
+                  </div>
+
+                  <p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm break-words">
+                    {f.error ?? "No error recorded"}
+                  </p>
+
+                  <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                    <span className="tabular-nums">
+                      {f.attempts} attempt{f.attempts === 1 ? "" : "s"}
+                    </span>
+                    {f.lastAttemptAt ? (
+                      <span>Last tried {formatTimestamp(f.lastAttemptAt, tz)}</span>
+                    ) : null}
+                    {f.exhausted ? <Badge variant="outline">Given up</Badge> : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
           </CardContent>
         </Card>
       )}

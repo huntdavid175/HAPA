@@ -12,7 +12,7 @@ import {
   checkoutCallbackUrl,
   initializeTransaction,
 } from "@/lib/paystack";
-import { paymentsEnabled } from "@/lib/env";
+import { checkoutEnabled } from "@/lib/env";
 import { toCurrency } from "@/lib/currency";
 
 export type CheckoutState = { error: string | null };
@@ -73,7 +73,7 @@ export async function startCheckout(
   const phone = normalizeGhanaPhone(parsed.data.phone);
   if (!phone.ok) return { error: phone.error };
 
-  if (!paymentsEnabled()) {
+  if (!checkoutEnabled()) {
     return {
       error:
         "Online payment is not switched on yet. Please contact the organizer to buy a ticket.",

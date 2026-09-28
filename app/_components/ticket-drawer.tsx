@@ -30,10 +30,12 @@ import { CartContents } from "./cart-contents";
  */
 export function TicketDrawer({
   checkoutOpen,
+  checkoutPaused,
   eventId,
   unavailableNotice,
 }: {
   checkoutOpen: boolean;
+  checkoutPaused: boolean;
   eventId: string;
   unavailableNotice: string | null;
 }) {
@@ -78,7 +80,11 @@ export function TicketDrawer({
           {unavailableNotice ? (
             <p className="text-sm text-muted-foreground">{unavailableNotice}</p>
           ) : (
-            <CartContents eventId={eventId} checkoutOpen={checkoutOpen} />
+            <CartContents
+              eventId={eventId}
+              checkoutOpen={checkoutOpen}
+              checkoutPaused={checkoutPaused}
+            />
           )}
         </div>
       </DrawerContent>

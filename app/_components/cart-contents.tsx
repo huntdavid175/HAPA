@@ -14,12 +14,20 @@ const SPOKEN: Record<Currency, string> = { GHS: "cedis", USD: "US dollars" };
 
 const initial: CheckoutState = { error: null };
 
-function PayButton({ total, currency }: { total: number; currency?: Currency }) {
+function PayButton({
+  total,
+  currency,
+  paused,
+}: {
+  total: number;
+  currency?: Currency;
+  paused: boolean;
+}) {
   const { pending } = useFormStatus();
   return (
     <button
       type="submit"
-      disabled={pending || total === 0}
+      disabled={paused || pending || total === 0}
       className="w-full bg-cta px-6 py-3.5 text-sm font-bold text-cta-foreground transition hover:brightness-95 focus-visible:ring-2 focus-visible:ring-cta focus-visible:ring-offset-4 focus-visible:ring-offset-background focus-visible:outline-none disabled:opacity-40"
     >
       {pending ? "Taking you to payment…" : `Pay ${formatPesewas(total, currency)}`}
@@ -37,9 +45,12 @@ function PayButton({ total, currency }: { total: number; currency?: Currency }) 
 export function CartContents({
   eventId,
   checkoutOpen,
+  checkoutPaused,
 }: {
   eventId: string;
   checkoutOpen: boolean;
+  /** Show the whole form but keep Pay disabled; see `CHECKOUT_PAUSED` in lib/env.ts. */
+  checkoutPaused: boolean;
 }) {
   const [state, action] = useActionState(startCheckout, initial);
   const {
@@ -221,7 +232,11 @@ export function CartContents({
             </p>
           ) : null}
 
-          <PayButton total={totalPesewas} currency={cartCurrency} />
+          <PayButton
+            total={totalPesewas}
+            currency={cartCurrency}
+            paused={checkoutPaused}
+          />
 
           <p className="text-center text-xs text-muted-foreground">
             Pay with mobile money or card. Your{" "}

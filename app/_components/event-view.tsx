@@ -1,6 +1,6 @@
 import { formatEventDateRange, formatEventTime } from "@/lib/format";
 import { isFullyUnavailable, type EventWithTiers } from "@/lib/events";
-import { paymentsEnabled } from "@/lib/env";
+import { checkoutPaused, paymentsEnabled } from "@/lib/env";
 import { ensureRichText } from "@/lib/rich-text";
 import { cheapestPrice } from "@/lib/pricing";
 import { toCurrency } from "@/lib/currency";
@@ -141,6 +141,7 @@ export function EventView({ event }: { event: EventWithTiers }) {
         <TicketDrawer
           eventId={event.id}
           checkoutOpen={checkoutOpen}
+          checkoutPaused={checkoutPaused()}
           unavailableNotice={unavailableNotice}
         />
 

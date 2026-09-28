@@ -162,6 +162,25 @@ export function paymentsEnabled(): boolean {
 }
 
 /**
+ * Checkout is paused by hand for now, whatever Paystack's configuration: the page and
+ * the drawer show the whole flow, but the Pay button is disabled and `startCheckout`
+ * refuses. Set this to false and redeploy to sell again.
+ *
+ * Only new checkouts stop: the webhook and the order page still use `paymentsEnabled`,
+ * so an order already at Paystack settles and issues its tickets.
+ */
+const CHECKOUT_PAUSED = true;
+
+export function checkoutPaused(): boolean {
+  return CHECKOUT_PAUSED;
+}
+
+/** True when buyers may start a new checkout. */
+export function checkoutEnabled(): boolean {
+  return !CHECKOUT_PAUSED && paymentsEnabled();
+}
+
+/**
  * Call this at the top of any code path that is about to move money.
  *
  * Paystack is optional at boot while verification is pending, which means a checkout

@@ -169,7 +169,7 @@ export function paymentsEnabled(): boolean {
  * Only new checkouts stop: the webhook and the order page still use `paymentsEnabled`,
  * so an order already at Paystack settles and issues its tickets.
  */
-const CHECKOUT_PAUSED = true;
+const CHECKOUT_PAUSED = false;
 
 export function checkoutPaused(): boolean {
   return CHECKOUT_PAUSED;

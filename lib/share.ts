@@ -9,6 +9,11 @@ export function eventUrl(slug: string): string {
   return `${clientEnv().NEXT_PUBLIC_SITE_URL}/e/${slug}`;
 }
 
+/** A night's door registration form, `/register/day-1` and so on. */
+export function registrationUrl(daySlug: string): string {
+  return `${clientEnv().NEXT_PUBLIC_SITE_URL}/register/${daySlug}`;
+}
+
 /**
  * QR settings tuned for print rather than screen.
  *

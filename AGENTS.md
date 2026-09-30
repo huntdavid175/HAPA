@@ -172,6 +172,22 @@ Pricing cards at the foot of the page, a drawer for the cart, and a rail (deskto
   desktop screenshot only ever shows the "cannot scan" fallback. Check the camera view on
   a phone.
 
+## Door registration (`/register`)
+
+- One form per night, `/register/day-1` … `day-3`, each its own QR on the door. The nights
+  are config in `lib/registration-days.ts`, not `events` rows; `registrations.day` is the
+  night's number.
+- Validation is `lib/registration.ts`, run by the form and again by the action
+  (`app/register/actions.ts`). `HEARD_ABOUT_OPTIONS` is mirrored by a CHECK constraint —
+  change both together.
+- `anon` has no grant on `registrations`; the action writes with the secret key, and only
+  admins can read. A repeat email for the same night hits the unique index and is shown as
+  "already on the list", not as an error.
+- Foreign phone numbers are accepted here (the diaspora night), unlike checkout.
+- Admin: `/admin/registrations` — a tab per night, search, and the "how they heard"
+  breakdown. Its CSV (`/export`) follows both the tab and the search, and re-checks the
+  admin role itself, like every route handler.
+
 ## Messaging
 
 - Providers are chosen per channel: `messaging(channel)`. Email goes through Resend

@@ -18,6 +18,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 const SECTIONS: { href: string; label: string }[] = [
   { href: "/admin/buyers", label: "Buyers" },
   { href: "/admin/orders", label: "Buyers" },
+  { href: "/admin/registrations", label: "Registrations" },
   { href: "/admin/failures", label: "Failed messages" },
   { href: "/admin/event", label: "Event" },
   { href: "/admin/broadcasts", label: "Messages" },

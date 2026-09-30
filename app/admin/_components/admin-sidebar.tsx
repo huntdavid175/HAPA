@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   AlertTriangleIcon,
   CalendarDaysIcon,
+  ClipboardListIcon,
   LayoutDashboardIcon,
   ScanLineIcon,
   Share2Icon,
@@ -47,6 +48,7 @@ type NavItem = {
 const TONIGHT: NavItem[] = [
   { href: "/admin", label: "Overview", icon: LayoutDashboardIcon, exact: true },
   { href: "/admin/buyers", label: "Buyers", icon: UsersIcon },
+  { href: "/admin/registrations", label: "Registrations", icon: ClipboardListIcon },
   { href: "/admin/failures", label: "Failed messages", icon: AlertTriangleIcon },
   { href: "/scan", label: "Scan tickets", icon: ScanLineIcon },
 ];

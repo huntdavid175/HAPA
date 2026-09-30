@@ -320,6 +320,57 @@
 }
 
 /**
+ * Door registration: one colour per night, carried by the tab down the pass's edge, the
+ * stamp and the focused line. It is how staff tell from across a queue which night's
+ * form a guest has open. Set on the `.theme-paper` pass, so each clears 3:1 against
+ * paper white for the line and stamp, and the tab's text clears 4.5:1 on it — dark on
+ * the gold, white on the other two.
+ */
+.reg-day-1 {
+  --day: #b37d15;
+  --day-foreground: #1a1206;
+}
+
+.reg-day-2 {
+  --day: #5560d8;
+  --day-foreground: #ffffff;
+}
+
+.reg-day-3 {
+  --day: #c2410c;
+  --day-foreground: #ffffff;
+}
+
+/**
+ * The stamp that lands on the pass once a guest is registered: the one moment of motion
+ * on the page, and it answers the guest's own tap. Under reduced motion it is simply there.
+ */
+@keyframes reg-stamp {
+  from {
+    opacity: 0;
+    transform: rotate(-8deg) scale(1.6);
+  }
+  60% {
+    opacity: 1;
+    transform: rotate(-8deg) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(-8deg) scale(1);
+  }
+}
+
+.reg-stamp {
+  transform: rotate(-8deg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .reg-stamp {
+    animation: reg-stamp 380ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+}
+
+/**
  * The perforation across a pricing card, between what the ticket is and the stub you pay
  * at. Laid edge to edge of the card's padding box; the notches are centred on the card's
  * outer edge, through its border, so they read as punched out of the whole ticket.

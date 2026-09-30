@@ -372,6 +372,45 @@ export type Database = {
         }
         Relationships: []
       }
+      registrations: {
+        Row: {
+          created_at: string
+          day: number
+          email: string
+          first_name: string
+          heard_about: string
+          heard_about_other: string | null
+          id: string
+          last_name: string
+          occupation: string
+          phone: string
+        }
+        Insert: {
+          created_at?: string
+          day: number
+          email: string
+          first_name: string
+          heard_about: string
+          heard_about_other?: string | null
+          id?: string
+          last_name: string
+          occupation: string
+          phone: string
+        }
+        Update: {
+          created_at?: string
+          day?: number
+          email?: string
+          first_name?: string
+          heard_about?: string
+          heard_about_other?: string | null
+          id?: string
+          last_name?: string
+          occupation?: string
+          phone?: string
+        }
+        Relationships: []
+      }
       ticket_tiers: {
         Row: {
           active: boolean

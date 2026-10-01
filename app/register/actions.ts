@@ -5,7 +5,11 @@ import { z } from "zod";
 
 import { clientEnv, serverEnv } from "@/lib/env";
 import { messaging } from "@/lib/messaging";
-import { composeRegistrationEmail } from "@/lib/messaging/email";
+import {
+  composeRegistrationConfirmationEmail,
+  composeRegistrationEmail,
+} from "@/lib/messaging/email";
+import { formatEventDate } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getRegistrationDay, type RegistrationDay } from "@/lib/registration-days";
 import {
@@ -42,7 +46,8 @@ const input = z.object({
  * guest who tapped twice, or who tried again because the first attempt looked stuck.
  * The unique index turns it away and the guest is told they are already on the list.
  *
- * A new registration is emailed to the organiser after the guest has their pass.
+ * A new registration is emailed to the guest, as their confirmation, and to the organiser,
+ * both after the guest has their pass.
  */
 export async function registerGuest(raw: unknown): Promise<RegisterResult> {
   const parsed = input.safeParse(raw);
@@ -85,10 +90,71 @@ export async function registerGuest(raw: unknown): Promise<RegisterResult> {
     return { ok: false, error: "Your registration was not saved. Try again." };
   }
 
-  // After the response, so the guest at the door is not kept waiting on Resend.
+  // After the response, so the guest at the door is not kept waiting on Resend. Two
+  // separate sends, so one failing does not stop the other.
+  after(() => confirmToGuest(data.id, day, phone.display, row));
   after(() => notifyOrganiser(data.id, day, phone.display, row));
 
   return { ok: true, alreadyRegistered: false };
+}
+
+type SavedRow = {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  occupation: string;
+  heard_about: string;
+  heard_about_other: string | null;
+};
+
+/**
+ * The guest's confirmation: their night, its date and the venue.
+ *
+ * The date is the night's calendar day at the venue, counted from the published event's
+ * start — Day 1 is the day it starts, Day 2 the next — so it follows the event if the
+ * organiser moves it. With nothing published the email still goes, without date or venue.
+ *
+ * Sent directly and not retried, like the organiser's: the registration stands either
+ * way. A repeat submit never reaches here, so nobody gets two confirmations.
+ */
+async function confirmToGuest(
+  id: string,
+  day: RegistrationDay,
+  phoneDisplay: string,
+  row: SavedRow,
+) {
+  const { data: event } = await createAdminClient()
+    .from("events")
+    .select("name, venue, starts_at, timezone")
+    .eq("status", "published")
+    .maybeSingle();
+
+  const nightStarts = event
+    ? new Date(Date.parse(event.starts_at) + (day.number - 1) * 86_400_000).toISOString()
+    : null;
+
+  const email = composeRegistrationConfirmationEmail({
+    firstName: row.first_name,
+    fullName: `${row.first_name} ${row.last_name}`,
+    nightName: day.name,
+    nightNumber: day.number,
+    date: event && nightStarts ? formatEventDate(nightStarts, event.timezone) : null,
+    eventName: event?.name ?? null,
+    venue: event?.venue || null,
+    phone: phoneDisplay,
+  });
+
+  const result = await messaging("email").send({
+    channel: "email",
+    recipient: row.email,
+    subject: email.subject,
+    body: email.text,
+    react: email.react,
+    idempotencyKey: `registration-guest-${id}`,
+  });
+
+  if (!result.ok) console.error("registerGuest: guest confirmation failed", result.error);
 }
 
 /**
@@ -103,15 +169,7 @@ async function notifyOrganiser(
   id: string,
   day: RegistrationDay,
   phoneDisplay: string,
-  row: {
-    first_name: string;
-    last_name: string;
-    email: string;
-    phone: string;
-    occupation: string;
-    heard_about: string;
-    heard_about_other: string | null;
-  },
+  row: SavedRow,
 ) {
   const recipient = serverEnv().REGISTRATION_NOTIFY_EMAIL;
   if (!recipient) return;

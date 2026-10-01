@@ -4,6 +4,12 @@ import type { ReactElement } from "react";
 
 import { BroadcastEmail } from "@/components/emails/broadcast-email";
 import {
+  RegistrationConfirmationEmail,
+  registrationConfirmationClosing,
+  registrationConfirmationIntro,
+  type RegistrationConfirmationEmailProps,
+} from "@/components/emails/registration-confirmation-email";
+import {
   RegistrationEmail,
   type RegistrationEmailProps,
 } from "@/components/emails/registration-email";
@@ -72,6 +78,33 @@ export function composeBroadcastEmail(input: {
       body: input.body,
     }),
   };
+}
+
+/** The guest's confirmation that they are on the list for their night. */
+export function composeRegistrationConfirmationEmail(
+  input: RegistrationConfirmationEmailProps,
+): EmailContent {
+  const subject = input.date
+    ? `You're registered for ${input.nightName} · ${input.date}`
+    : `You're registered for ${input.nightName}`;
+
+  const text = [
+    `You're on the list, ${input.firstName}!`,
+    "",
+    registrationConfirmationIntro(input),
+    "",
+    `Night: ${input.nightName} (Day ${input.nightNumber})`,
+    ...(input.date ? [`Date: ${input.date}`] : []),
+    ...(input.venue ? [`Venue: ${input.venue}`] : []),
+    `Registered as: ${input.fullName}`,
+    `Phone: ${input.phone}`,
+    "",
+    registrationConfirmationClosing(),
+    "",
+    "See you there!",
+  ].join("\n");
+
+  return { subject, text, react: RegistrationConfirmationEmail(input) };
 }
 
 /** The organiser's note that someone has just registered at the door. */

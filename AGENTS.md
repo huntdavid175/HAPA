@@ -200,8 +200,12 @@ Pricing cards at the foot of the page, a drawer for the cart, and a rail (deskto
   through `lib/phone.ts`; every other country is checked by `libphonenumber-js` against
   its real number plan. A number typed with its own `+`/`00` code wins over the picker,
   and moves it. Flag emoji show as letters on Windows desktops; guests use phones.
-- Each new registration emails `REGISTRATION_NOTIFY_EMAIL` (the organiser), sent from
-  `after()` so the guest is not kept waiting. It goes straight to Resend, not through the
+- Each new registration sends two emails from `after()`, so the guest is not kept
+  waiting: a confirmation to the guest (night, date, venue —
+  `registration-confirmation-email.tsx`) and a note to `REGISTRATION_NOTIFY_EMAIL` (the
+  organiser). A night's date is the published event's start day plus (night − 1) days at
+  the venue; there are no per-night dates in config. The guest email promises nothing
+  about entry — that is the organiser's to say. It goes straight to Resend, not through the
   outbox (`message_deliveries` must belong to an order or broadcast): a failed send is
   logged and dropped, since the row is in the admin regardless. A repeat submit sends
   nothing. Testing it means a real `registrations` row — the table is production.

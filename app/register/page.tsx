@@ -14,12 +14,12 @@ export const metadata: Metadata = {
  */
 export default function RegisterPage() {
   return (
-    <main className="theme-night min-h-dvh bg-background px-4 pt-10 pb-12 text-foreground sm:pt-16">
+    <main className="px-4 pt-10 pb-12 sm:pt-16">
       <div className="mx-auto w-full max-w-sm min-[400px]:max-w-md">
         <h1 className="text-[2.25rem] leading-[0.95] font-extrabold tracking-[-0.03em] [font-stretch:110%]">
           Registration
         </h1>
-        <p className="mt-3 text-muted-foreground">Pick the night you are here for.</p>
+        <p className="mt-3 text-foreground/85">Pick the night you are here for.</p>
 
         <ul className="mt-8 flex flex-col gap-4">
           {REGISTRATION_DAYS.map((day) => (

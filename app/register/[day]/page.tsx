@@ -33,7 +33,7 @@ export default async function RegisterDayPage({ params }: PageProps<"/register/[
   if (!day) notFound();
 
   return (
-    <main className="theme-night min-h-dvh bg-background px-4 pt-8 pb-12 text-foreground sm:pt-14">
+    <main className="px-4 pt-8 pb-12 sm:pt-14">
       <div className="mx-auto w-full max-w-sm min-[400px]:max-w-md">
         <RegistrationPass day={day} />
       </div>

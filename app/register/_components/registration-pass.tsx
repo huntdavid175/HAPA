@@ -97,19 +97,11 @@ export function RegistrationPass({ day }: { day: RegistrationDay }) {
     });
   }
 
-  function registerAnother() {
-    setFields(EMPTY);
-    setErrors({});
-    setFormError(null);
-    setRegistered(null);
-    window.scrollTo({ top: 0 });
-  }
-
   return (
     <>
-      <article className={`ticket-pass ${day.accentClass}`}>
+      <article className={day.accentClass}>
         {/* ---- The stub: which night ------------------------------------------------ */}
-        <header className="theme-paper flex rounded-t-[1.75rem] bg-card text-card-foreground">
+        <header className="theme-paper reg-cut-bottom flex rounded-t-[1.75rem] bg-card text-card-foreground">
           <div className="min-w-0 flex-1 px-6 pt-7 pb-7">
             {day.subtitle ? (
               <p className="mb-2 text-sm font-semibold text-muted-foreground">{day.subtitle}</p>
@@ -138,13 +130,10 @@ export function RegistrationPass({ day }: { day: RegistrationDay }) {
           </span>
         </header>
 
-        {/* ---- The tear ------------------------------------------------------------ */}
-        <div className="theme-paper bg-muted" aria-hidden>
-          <div className="ticket-perf" />
-        </div>
-
-        {/* ---- The half the guest fills in ----------------------------------------- */}
-        <div className="theme-paper rounded-b-[1.75rem] bg-muted text-foreground">
+        {/* ---- The half the guest fills in, below the tear -------------------------- */}
+        {/* The dashed top border is the perforation; the notches are cut through both
+            halves (`.reg-cut-*`) so the backdrop shows through them. */}
+        <div className="theme-paper reg-cut-top rounded-b-[1.75rem] border-t-2 border-dashed border-border bg-muted text-foreground">
           {registered ? (
             <FilledIn details={registered} />
           ) : (
@@ -255,16 +244,8 @@ export function RegistrationPass({ day }: { day: RegistrationDay }) {
         </div>
       </article>
 
-      {registered ? (
-        <button
-          type="button"
-          onClick={registerAnother}
-          className="mt-6 h-13 w-full rounded-xl border border-border px-6 text-[0.95rem] font-bold tracking-[-0.01em] text-foreground transition hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-        >
-          Register another guest
-        </button>
-      ) : (
-        <p className="mt-8 text-center text-sm text-muted-foreground">
+      {registered ? null : (
+        <p className="mt-8 text-center text-sm text-foreground">
           Here on a different night?{" "}
           <Link
             href="/register"

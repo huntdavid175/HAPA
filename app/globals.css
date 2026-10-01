@@ -342,6 +342,51 @@
 }
 
 /**
+ * The registration pages sit on kente cloth, under a plum wash so the pattern reads as
+ * texture and the paper pass stays the brightest thing on screen. The wash is the night
+ * page's own #141016, so the page still belongs to `.theme-night`.
+ *
+ * Tiled at the photo's own size rather than stretched to cover: the source is 387px wide,
+ * and blown up to a desktop screen it went soft, while cloth repeating is what cloth does.
+ * On a fixed layer, not `background-attachment: fixed`, which iOS Safari ignores.
+ */
+.reg-backdrop {
+  background-color: #141016;
+  background-image:
+    linear-gradient(rgb(20 16 22 / 0.7), rgb(20 16 22 / 0.7)),
+    url("/register/kente.jpg");
+  background-size: auto, 387px auto;
+  background-repeat: no-repeat, repeat;
+}
+
+/**
+ * The notches at the tear, cut as real holes. `.ticket-perf` paints its notches in the
+ * page colour, which works on a flat page and shows as two plum dots on cloth. Here each
+ * half has half a circle masked out of its edge at the tear, so the backdrop shows
+ * through. Both masks use the same radius and sit on the shared edge, so they line up.
+ */
+.reg-cut-bottom,
+.reg-cut-top {
+  --notch: 0.75rem;
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+
+.reg-cut-bottom {
+  mask-image:
+    radial-gradient(circle var(--notch) at 0 calc(100% + 1px), transparent 98%, #000 100%),
+    radial-gradient(circle var(--notch) at 100% calc(100% + 1px), transparent 98%, #000 100%);
+}
+
+.reg-cut-top {
+  /* 1px down: the perforation is this half's 2px top border, and masks measure from
+     its outer edge. The stub's circles sit the same 1px below its own bottom edge. */
+  mask-image:
+    radial-gradient(circle var(--notch) at 0 1px, transparent 98%, #000 100%),
+    radial-gradient(circle var(--notch) at 100% 1px, transparent 98%, #000 100%);
+}
+
+/**
  * The stamp that lands on the pass once a guest is registered: the one moment of motion
  * on the page, and it answers the guest's own tap. Under reduced motion it is simply there.
  */

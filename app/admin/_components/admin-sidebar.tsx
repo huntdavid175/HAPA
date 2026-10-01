@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import {
   AlertTriangleIcon,
@@ -27,7 +27,9 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
+import { Spinner } from "@/components/ui/spinner";
 import { SignOutDialog } from "./sign-out-dialog";
 
 /**
@@ -70,6 +72,10 @@ export function AdminSidebar({
   signOutAction: () => void;
 }) {
   const pathname = usePathname();
+  // On a phone the menu is a sheet over the page. Left open, it hid the page loading
+  // behind it, and a tap looked like it had done nothing.
+  const { setOpenMobile } = useSidebar();
+  const closeMobile = () => setOpenMobile(false);
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname.startsWith(href);
@@ -79,7 +85,7 @@ export function AdminSidebar({
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" render={<Link href="/admin" />}>
+            <SidebarMenuButton size="lg" render={<Link href="/admin" onClick={closeMobile} />}>
               <div className="bg-primary text-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                 <TicketIcon />
               </div>
@@ -102,10 +108,9 @@ export function AdminSidebar({
                   <SidebarMenuButton
                     isActive={isActive(item.href, item.exact)}
                     tooltip={item.label}
-                   
-                    render={<Link href={item.href} />}
+                    render={<Link href={item.href} onClick={closeMobile} />}
                   >
-                    <item.icon />
+                    <NavIcon icon={item.icon} />
                     <span>{item.label}</span>
                   </SidebarMenuButton>
 
@@ -128,10 +133,9 @@ export function AdminSidebar({
                   <SidebarMenuButton
                     isActive={isActive(item.href)}
                     tooltip={item.label}
-                   
-                    render={<Link href={item.href} />}
+                    render={<Link href={item.href} onClick={closeMobile} />}
                   >
-                    <item.icon />
+                    <NavIcon icon={item.icon} />
                     <span>{item.label}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -150,4 +154,17 @@ export function AdminSidebar({
       </SidebarFooter>
     </Sidebar>
   );
+}
+
+/**
+ * The item's icon, or a spinner from the moment it is clicked until the page changes.
+ *
+ * The highlight only moves once the new page arrives, so without this a slow page looked
+ * like a click that had not registered, and organisers clicked again. It is decided in
+ * the browser, so it shows even before the server has answered. Same size as the icon, so
+ * nothing shifts.
+ */
+function NavIcon({ icon: Icon }: { icon: React.ComponentType }) {
+  const { pending } = useLinkStatus();
+  return pending ? <Spinner aria-hidden role={undefined} aria-label={undefined} /> : <Icon />;
 }

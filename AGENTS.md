@@ -145,6 +145,11 @@ Pricing cards at the foot of the page, a drawer for the cart, and a rail (deskto
   the wide column, settings and summaries in cards in the narrow one. On a phone the
   columns stack; if something in the side column matters first, render it at the top of
   the main column too, `lg:hidden` there and `hidden lg:block` in the side.
+- **A click must show something at once.** `app/admin/loading.tsx` is a skeleton in the
+  page pattern's shape, shown while the next page's queries run; the sidebar item swaps
+  its icon for a spinner (`useLinkStatus`) before the server has answered; and on a phone
+  the menu sheet closes on tap, or the page loads hidden behind it. On the dev server the
+  skeleton can arrive late or not at all — production prefetches it.
 - Lists are lists, not tables, wherever a row is one long sentence plus an action:
   `TableCell` is `whitespace-nowrap`, so long errors ran through neighbouring columns and
   pushed buttons off a phone screen. Whole rows link to their record.

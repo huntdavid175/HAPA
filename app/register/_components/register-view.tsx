@@ -1,5 +1,6 @@
 import { EventHero } from "@/app/_components/event-hero";
 import { AboutText } from "@/app/_components/about-text";
+import { EventCrest } from "@/app/_components/event-crest";
 import type { EventWithTiers } from "@/lib/events";
 import { formatEventDateRange } from "@/lib/format";
 import type { RegistrationDay } from "@/lib/registration-days";
@@ -35,6 +36,7 @@ export function RegisterView({
       <div className="mx-auto w-full max-w-5xl px-4 min-[400px]:px-6 sm:px-8">
         <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start lg:gap-x-14">
           <header className="px-2 pt-7 min-[400px]:px-0 lg:sticky lg:top-10">
+            <EventCrest className="mb-5" />
             <p className="text-sm font-semibold text-muted-foreground">Guest registration</p>
             <h1 className="mt-2 text-[1.625rem] leading-[1.1] font-extrabold tracking-[-0.02em] text-balance break-words [font-stretch:105%] sm:text-3xl lg:text-4xl">
               {event?.name ?? "Registration"}

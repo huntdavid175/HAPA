@@ -6,6 +6,7 @@ import { cheapestPrice } from "@/lib/pricing";
 import { toCurrency } from "@/lib/currency";
 import { EventHero } from "./event-hero";
 import { AboutText } from "./about-text";
+import { EventCrest } from "./event-crest";
 import { CartProvider, type CartTier } from "./cart";
 import { BuyRail, BuyBar, TicketPlansSection } from "./buy-panel";
 import { TicketDrawer } from "./ticket-drawer";
@@ -65,6 +66,7 @@ export function EventView({ event }: { event: EventWithTiers }) {
         <div className="mx-auto w-full max-w-5xl px-6 sm:px-8">
           <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_17rem] lg:items-start lg:gap-x-14">
             <header className="pt-7 lg:col-start-1 lg:row-start-1">
+              <EventCrest className="mb-5" />
               <h1
                 className={`text-balance break-words ${titleClass(event.name)}`}
               >

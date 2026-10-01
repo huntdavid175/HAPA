@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -9,7 +10,6 @@ import {
   LayoutDashboardIcon,
   ScanLineIcon,
   Share2Icon,
-  TicketIcon,
   UsersIcon,
   UserCogIcon,
   MessageSquareIcon,
@@ -82,20 +82,38 @@ export function AdminSidebar({
 
   return (
     <Sidebar collapsible="icon">
+      {/* The HAPAwards logo, on white in both colour schemes: its figure is black and
+          would vanish on the dark sidebar. Collapsed to icons, only the globe fits. */}
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" render={<Link href="/admin" onClick={closeMobile} />}>
-              <div className="bg-primary text-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                <TicketIcon />
-              </div>
-              <div className="flex flex-col gap-0.5 leading-none">
-                <span className="font-semibold">HAPA</span>
-                <span className="text-muted-foreground text-xs">Ticketing</span>
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <Link
+          href="/admin"
+          onClick={closeMobile}
+          aria-label="HAPAwards admin, overview"
+          className="block rounded-lg bg-white px-3 py-2.5 ring-1 ring-sidebar-border transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:outline-none group-data-[collapsible=icon]:hidden"
+        >
+          <Image
+            src="/brand/hapa-logo.png"
+            alt=""
+            width={377}
+            height={248}
+            priority
+            className="mx-auto h-auto w-full max-w-36"
+          />
+        </Link>
+        <Link
+          href="/admin"
+          onClick={closeMobile}
+          aria-label="HAPAwards admin, overview"
+          className="hidden rounded-lg focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:outline-none group-data-[collapsible=icon]:block"
+        >
+          <Image
+            src="/brand/hapa-mark.png"
+            alt=""
+            width={128}
+            height={128}
+            className="size-8 rounded-lg ring-1 ring-sidebar-border"
+          />
+        </Link>
       </SidebarHeader>
 
       <SidebarContent>

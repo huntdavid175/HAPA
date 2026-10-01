@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import Link from "next/link";
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
 
 import { HEARD_ABOUT_OPTIONS, type RegistrationDay } from "@/lib/registration-days";
@@ -98,164 +97,150 @@ export function RegistrationPass({ day }: { day: RegistrationDay }) {
   }
 
   return (
-    <>
-      <article className={day.accentClass}>
-        {/* ---- The stub: which night ------------------------------------------------ */}
-        <header className="theme-paper reg-cut-bottom flex rounded-t-[1.75rem] bg-card text-card-foreground">
-          <div className="min-w-0 flex-1 px-6 pt-7 pb-7">
-            {day.subtitle ? (
-              <p className="mb-2 text-sm font-semibold text-muted-foreground">{day.subtitle}</p>
-            ) : null}
-            <h1 className="text-[2rem] leading-[0.95] font-extrabold tracking-[-0.03em] text-balance break-words [font-stretch:112%] min-[400px]:text-[2.375rem]">
-              {day.name}
-            </h1>
-            <p className="mt-4 text-[0.95rem] text-pretty text-muted-foreground">
-              {registered
-                ? registered.alreadyRegistered
-                  ? "You were already on the list for tonight."
-                  : "You're on the list for tonight."
-                : "Fill in your details to register for tonight."}
-            </p>
-          </div>
-
-          {/* The night printed down the edge, the way a wristband colour is the first
-              thing a steward looks for. */}
-          <span
-            className="flex w-11 shrink-0 items-center justify-center rounded-tr-[1.75rem] py-6"
-            style={{ background: "var(--day)", color: "var(--day-foreground)" }}
-          >
-            <span className="rotate-180 text-[0.95rem] font-extrabold tracking-[-0.01em] whitespace-nowrap [writing-mode:vertical-rl]">
-              Day {day.number}
-            </span>
-          </span>
-        </header>
-
-        {/* ---- The half the guest fills in, below the tear -------------------------- */}
-        {/* The dashed top border is the perforation; the notches are cut through both
-            halves (`.reg-cut-*`) so the backdrop shows through them. */}
-        <div className="theme-paper reg-cut-top rounded-b-[1.75rem] border-t-2 border-dashed border-border bg-muted text-foreground">
-          {registered ? (
-            <FilledIn details={registered} />
-          ) : (
-            <form
-              ref={formRef}
-              onSubmit={onSubmit}
-              noValidate
-              className="flex flex-col gap-6 px-6 pt-7 pb-7"
-            >
-              <div className="grid gap-6 min-[400px]:grid-cols-2 min-[400px]:gap-4">
-                <Line
-                  name="firstName"
-                  label="First name"
-                  autoComplete="given-name"
-                  maxLength={REGISTRATION_LIMITS.name}
-                  autoCapitalize="words"
-                  value={fields.firstName}
-                  error={errors.firstName}
-                  onChange={update}
-                />
-                <Line
-                  name="lastName"
-                  label="Last name"
-                  autoComplete="family-name"
-                  maxLength={REGISTRATION_LIMITS.name}
-                  autoCapitalize="words"
-                  value={fields.lastName}
-                  error={errors.lastName}
-                  onChange={update}
-                />
-              </div>
-
-              <Line
-                name="email"
-                label="Email"
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                maxLength={REGISTRATION_LIMITS.email}
-                autoCapitalize="none"
-                spellCheck={false}
-                value={fields.email}
-                error={errors.email}
-                onChange={update}
-              />
-
-              <Line
-                name="phone"
-                label="Phone number"
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                placeholder="024 123 4567"
-                hint="Outside Ghana? Start with your country code."
-                value={fields.phone}
-                error={errors.phone}
-                onChange={update}
-              />
-
-              <Line
-                name="occupation"
-                label="Occupation"
-                autoComplete="organization-title"
-                maxLength={REGISTRATION_LIMITS.occupation}
-                autoCapitalize="sentences"
-                placeholder="e.g. Photographer"
-                value={fields.occupation}
-                error={errors.occupation}
-                onChange={update}
-              />
-
-              <div className="flex flex-col gap-4">
-                <HeardAboutSelect
-                  value={fields.heardAbout}
-                  error={errors.heardAbout}
-                  onChange={update}
-                />
-                {fields.heardAbout === "Other" ? (
-                  <Line
-                    name="heardAboutOther"
-                    label="Where did you hear about it? (optional)"
-                    autoCapitalize="sentences"
-                    enterKeyHint="done"
-                    maxLength={REGISTRATION_LIMITS.heardAboutOther}
-                    value={fields.heardAboutOther}
-                    error={errors.heardAboutOther}
-                    onChange={update}
-                  />
-                ) : null}
-              </div>
-
-              {formError ? (
-                <p role="alert" className="text-sm font-medium text-destructive">
-                  {formError}
-                </p>
-              ) : null}
-
-              <button
-                type="submit"
-                disabled={pending}
-                aria-disabled={pending}
-                className="mt-2 h-13 w-full rounded-xl bg-foreground px-6 text-[0.95rem] font-bold tracking-[-0.01em] text-background transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[var(--day)] focus-visible:ring-offset-2 focus-visible:ring-offset-muted focus-visible:outline-none disabled:opacity-70"
-              >
-                {pending ? "Registering…" : "Register"}
-              </button>
-            </form>
-          )}
+    <article className={day.accentClass}>
+      {/* ---- The stub: which night ------------------------------------------------ */}
+      <header className="theme-paper reg-cut-bottom flex rounded-t-[1.75rem] bg-card text-card-foreground">
+        <div className="min-w-0 flex-1 px-6 pt-7 pb-7">
+          {day.subtitle ? (
+            <p className="mb-2 text-sm font-semibold text-muted-foreground">{day.subtitle}</p>
+          ) : null}
+          <h1 className="text-[2rem] leading-[0.95] font-extrabold tracking-[-0.03em] text-balance break-words [font-stretch:112%] min-[400px]:text-[2.375rem]">
+            {day.name}
+          </h1>
+          <p className="mt-4 text-[0.95rem] text-pretty text-muted-foreground">
+            {registered
+              ? registered.alreadyRegistered
+                ? "You were already on the list for tonight."
+                : "You're on the list for tonight."
+              : "Fill in your details to register for tonight."}
+          </p>
         </div>
-      </article>
 
-      {registered ? null : (
-        <p className="mt-8 text-center text-sm text-foreground">
-          Here on a different night?{" "}
-          <Link
-            href="/register"
-            className="font-semibold text-foreground underline underline-offset-2"
+        {/* The night printed down the edge, the way a wristband colour is the first
+            thing a steward looks for. */}
+        <span
+          className="flex w-11 shrink-0 items-center justify-center rounded-tr-[1.75rem] py-6"
+          style={{ background: "var(--day)", color: "var(--day-foreground)" }}
+        >
+          <span className="rotate-180 text-[0.95rem] font-extrabold tracking-[-0.01em] whitespace-nowrap [writing-mode:vertical-rl]">
+            Day {day.number}
+          </span>
+        </span>
+      </header>
+
+      {/* ---- The half the guest fills in, below the tear -------------------------- */}
+      {/* The dashed top border is the perforation; the notches are cut through both
+          halves (`.reg-cut-*`) so the backdrop shows through them. */}
+      <div className="theme-paper reg-cut-top rounded-b-[1.75rem] border-t-2 border-dashed border-border bg-muted text-foreground">
+        {registered ? (
+          <FilledIn details={registered} />
+        ) : (
+          <form
+            ref={formRef}
+            onSubmit={onSubmit}
+            noValidate
+            className="flex flex-col gap-6 px-6 pt-7 pb-7"
           >
-            Choose your day
-          </Link>
-        </p>
-      )}
-    </>
+            <div className="grid gap-6 min-[400px]:grid-cols-2 min-[400px]:gap-4">
+              <Line
+                name="firstName"
+                label="First name"
+                autoComplete="given-name"
+                maxLength={REGISTRATION_LIMITS.name}
+                autoCapitalize="words"
+                value={fields.firstName}
+                error={errors.firstName}
+                onChange={update}
+              />
+              <Line
+                name="lastName"
+                label="Last name"
+                autoComplete="family-name"
+                maxLength={REGISTRATION_LIMITS.name}
+                autoCapitalize="words"
+                value={fields.lastName}
+                error={errors.lastName}
+                onChange={update}
+              />
+            </div>
+
+            <Line
+              name="email"
+              label="Email"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              maxLength={REGISTRATION_LIMITS.email}
+              autoCapitalize="none"
+              spellCheck={false}
+              value={fields.email}
+              error={errors.email}
+              onChange={update}
+            />
+
+            <Line
+              name="phone"
+              label="Phone number"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              placeholder="024 123 4567"
+              hint="Outside Ghana? Start with your country code."
+              value={fields.phone}
+              error={errors.phone}
+              onChange={update}
+            />
+
+            <Line
+              name="occupation"
+              label="Occupation"
+              autoComplete="organization-title"
+              maxLength={REGISTRATION_LIMITS.occupation}
+              autoCapitalize="sentences"
+              placeholder="e.g. Photographer"
+              value={fields.occupation}
+              error={errors.occupation}
+              onChange={update}
+            />
+
+            <div className="flex flex-col gap-4">
+              <HeardAboutSelect
+                value={fields.heardAbout}
+                error={errors.heardAbout}
+                onChange={update}
+              />
+              {fields.heardAbout === "Other" ? (
+                <Line
+                  name="heardAboutOther"
+                  label="Where did you hear about it? (optional)"
+                  autoCapitalize="sentences"
+                  enterKeyHint="done"
+                  maxLength={REGISTRATION_LIMITS.heardAboutOther}
+                  value={fields.heardAboutOther}
+                  error={errors.heardAboutOther}
+                  onChange={update}
+                />
+              ) : null}
+            </div>
+
+            {formError ? (
+              <p role="alert" className="text-sm font-medium text-destructive">
+                {formError}
+              </p>
+            ) : null}
+
+            <button
+              type="submit"
+              disabled={pending}
+              aria-disabled={pending}
+              className="mt-2 h-13 w-full rounded-xl bg-foreground px-6 text-[0.95rem] font-bold tracking-[-0.01em] text-background transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[var(--day)] focus-visible:ring-offset-2 focus-visible:ring-offset-muted focus-visible:outline-none disabled:opacity-70"
+            >
+              {pending ? "Registering…" : "Register"}
+            </button>
+          </form>
+        )}
+      </div>
+    </article>
   );
 }
 

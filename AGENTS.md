@@ -184,6 +184,15 @@ Pricing cards at the foot of the page, a drawer for the cart, and a rail (deskto
   admins can read. A repeat email for the same night hits the unique index and is shown as
   "already on the list", not as an error.
 - Foreign phone numbers are accepted here (the diaspora night), unlike checkout.
+- **Guests fill it in on their own phones**, from a shared link or QR. It is not a kiosk:
+  the stamped pass ends the flow, and shared-device affordances ("Register another
+  guest") were built once and removed.
+- The pages sit on kente cloth (`public/register/kente.jpg`, `.reg-backdrop`, set in
+  `app/register/layout.tsx`), tiled at the photo's 387px width because stretching it
+  went soft. Text placed straight on the cloth needs `text-foreground`; the mauve
+  `muted-foreground` sinks into the pattern.
+- The pass's notches are mask cut-outs (`.reg-cut-top` / `.reg-cut-bottom`), not the
+  page-coloured circles of `.ticket-perf`, which show as dots on a patterned backdrop.
 - Admin: `/admin/registrations` — a tab per night, search, and the "how they heard"
   breakdown. Its CSV (`/export`) follows both the tab and the search, and re-checks the
   admin role itself, like every route handler.

@@ -184,6 +184,11 @@ Pricing cards at the foot of the page, a drawer for the cart, and a rail (deskto
   admins can read. A repeat email for the same night hits the unique index and is shown as
   "already on the list", not as an error.
 - Foreign phone numbers are accepted here (the diaspora night), unlike checkout.
+- Each new registration emails `REGISTRATION_NOTIFY_EMAIL` (the organiser), sent from
+  `after()` so the guest is not kept waiting. It goes straight to Resend, not through the
+  outbox (`message_deliveries` must belong to an order or broadcast): a failed send is
+  logged and dropped, since the row is in the admin regardless. A repeat submit sends
+  nothing. Testing it means a real `registrations` row — the table is production.
 - **Guests fill it in on their own phones**, from a shared link or QR. It is not a kiosk:
   the stamped pass ends the flow, and shared-device affordances ("Register another
   guest") were built once and removed.

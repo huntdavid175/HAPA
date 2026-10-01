@@ -3,6 +3,10 @@ import "server-only";
 import type { ReactElement } from "react";
 
 import { BroadcastEmail } from "@/components/emails/broadcast-email";
+import {
+  RegistrationEmail,
+  type RegistrationEmailProps,
+} from "@/components/emails/registration-email";
 import { TicketEmail, ticketAction, ticketIntro } from "@/components/emails/ticket-email";
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { composeTicketMessage } from "./ticket-message";
@@ -68,4 +72,22 @@ export function composeBroadcastEmail(input: {
       body: input.body,
     }),
   };
+}
+
+/** The organiser's note that someone has just registered at the door. */
+export function composeRegistrationEmail(input: RegistrationEmailProps): EmailContent {
+  const subject = `New registration · ${input.night} · ${input.name}`;
+
+  const text = [
+    `${input.name} registered for ${input.night}.`,
+    "",
+    `Email: ${input.email}`,
+    `Phone: ${input.phone}`,
+    `Occupation: ${input.occupation}`,
+    `Heard about it: ${input.heardAbout}`,
+    "",
+    `All registrations: ${input.adminLink}`,
+  ].join("\n");
+
+  return { subject, text, react: RegistrationEmail(input) };
 }

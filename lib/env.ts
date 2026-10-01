@@ -72,6 +72,8 @@ const serverSchema = z
     EMAIL_FROM: z.string().min(3).optional(),
     // Where a buyer's reply lands. Without it, replies go to the sending address.
     EMAIL_REPLY_TO: z.email().optional(),
+    // Told by email of every door registration. Unset, nobody is.
+    REGISTRATION_NOTIFY_EMAIL: z.email().optional(),
 
     SENTRY_DSN: z.url().optional(),
 

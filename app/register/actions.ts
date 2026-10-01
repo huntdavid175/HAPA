@@ -1,9 +1,14 @@
 "use server";
 
+import { after } from "next/server";
 import { z } from "zod";
 
+import { clientEnv, serverEnv } from "@/lib/env";
+import { messaging } from "@/lib/messaging";
+import { composeRegistrationEmail } from "@/lib/messaging/email";
+import { formatGhanaPhone } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getRegistrationDay } from "@/lib/registration-days";
+import { getRegistrationDay, type RegistrationDay } from "@/lib/registration-days";
 import {
   checkRegistrationPhone,
   validateRegistration,
@@ -36,6 +41,8 @@ const input = z.object({
  * A second submit with the same email for the same night is not an error: it is the
  * guest who tapped twice, or who tried again because the first attempt looked stuck.
  * The unique index turns it away and the guest is told they are already on the list.
+ *
+ * A new registration is emailed to the organiser after the guest has their pass.
  */
 export async function registerGuest(raw: unknown): Promise<RegisterResult> {
   const parsed = input.safeParse(raw);
@@ -55,18 +62,22 @@ export async function registerGuest(raw: unknown): Promise<RegisterResult> {
 
   const other = fields.heardAbout === "Other" ? fields.heardAboutOther.trim() : "";
 
-  const { error } = await createAdminClient()
+  const row = {
+    day: day.number,
+    first_name: fields.firstName.trim(),
+    last_name: fields.lastName.trim(),
+    email: fields.email.trim(),
+    phone: phone.e164,
+    occupation: fields.occupation.trim(),
+    heard_about: fields.heardAbout,
+    heard_about_other: other || null,
+  };
+
+  const { data, error } = await createAdminClient()
     .from("registrations")
-    .insert({
-      day: day.number,
-      first_name: fields.firstName.trim(),
-      last_name: fields.lastName.trim(),
-      email: fields.email.trim(),
-      phone: phone.e164,
-      occupation: fields.occupation.trim(),
-      heard_about: fields.heardAbout,
-      heard_about_other: other || null,
-    });
+    .insert(row)
+    .select("id")
+    .single();
 
   if (error) {
     if (error.code === "23505") return { ok: true, alreadyRegistered: true };
@@ -74,5 +85,56 @@ export async function registerGuest(raw: unknown): Promise<RegisterResult> {
     return { ok: false, error: "Your registration was not saved. Try again." };
   }
 
+  // After the response, so the guest at the door is not kept waiting on Resend.
+  after(() => notifyOrganiser(data.id, day, row));
+
   return { ok: true, alreadyRegistered: false };
+}
+
+/**
+ * One email to the organiser per new registration.
+ *
+ * Sent directly, not through the outbox: the registration is saved and listed in the
+ * admin whatever happens here, so a failed send is logged and dropped rather than
+ * retried. The row id is the idempotency key, so a send whose response was lost and is
+ * tried again cannot arrive twice.
+ */
+async function notifyOrganiser(
+  id: string,
+  day: RegistrationDay,
+  row: {
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+    occupation: string;
+    heard_about: string;
+    heard_about_other: string | null;
+  },
+) {
+  const recipient = serverEnv().REGISTRATION_NOTIFY_EMAIL;
+  if (!recipient) return;
+
+  const email = composeRegistrationEmail({
+    night: `Night ${day.number} · ${day.name}`,
+    name: `${row.first_name} ${row.last_name}`,
+    email: row.email,
+    phone: formatGhanaPhone(row.phone),
+    occupation: row.occupation,
+    heardAbout: row.heard_about_other
+      ? `${row.heard_about}: ${row.heard_about_other}`
+      : row.heard_about,
+    adminLink: `${clientEnv().NEXT_PUBLIC_SITE_URL}/admin/registrations?day=${day.number}`,
+  });
+
+  const result = await messaging("email").send({
+    channel: "email",
+    recipient,
+    subject: email.subject,
+    body: email.text,
+    react: email.react,
+    idempotencyKey: `registration-${id}`,
+  });
+
+  if (!result.ok) console.error("registerGuest: organiser email failed", result.error);
 }

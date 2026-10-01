@@ -1,21 +1,19 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { REGISTRATION_DAYS, getRegistrationDay } from "@/lib/registration-days";
-import { RegistrationPass } from "../_components/registration-pass";
+import { getPublishedEvent } from "@/lib/events";
+import { getRegistrationDay } from "@/lib/registration-days";
+import { RegisterView } from "../_components/register-view";
 
 /**
- * One night's door registration. Guests reach it from a QR code at the entrance, on
- * their own phone, so it is built for a narrow screen first.
+ * One night's link — its QR code is on the door that night. The same page as
+ * `/register`, with this night's form already open in its modal, so a guest who scanned
+ * it goes straight to their details. Closing it shows the other nights.
  *
  * Next 16: `params` is a Promise and must be awaited.
  */
 
-export const dynamicParams = false;
-
-export function generateStaticParams() {
-  return REGISTRATION_DAYS.map((day) => ({ day: day.slug }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -32,11 +30,6 @@ export default async function RegisterDayPage({ params }: PageProps<"/register/[
   const day = getRegistrationDay((await params).day);
   if (!day) notFound();
 
-  return (
-    <main className="px-4 pt-8 pb-12 sm:pt-14">
-      <div className="mx-auto w-full max-w-sm min-[400px]:max-w-md">
-        <RegistrationPass day={day} />
-      </div>
-    </main>
-  );
+  const event = await getPublishedEvent();
+  return <RegisterView event={event} initialDay={day} />;
 }

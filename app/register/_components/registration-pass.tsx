@@ -2,6 +2,15 @@
 
 import { useRef, useState, useTransition } from "react";
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
+import {
+  AsYouType,
+  getExampleNumber,
+  parsePhoneNumberFromString,
+  type CountryCode,
+} from "libphonenumber-js";
+import examples from "libphonenumber-js/examples.mobile.json";
+
+import { DEFAULT_PHONE_COUNTRY, phoneCountries } from "@/lib/phone-countries";
 
 import { HEARD_ABOUT_OPTIONS, type RegistrationDay } from "@/lib/registration-days";
 import {
@@ -19,12 +28,13 @@ const EMPTY: Fields = {
   lastName: "",
   email: "",
   phone: "",
+  phoneCountry: DEFAULT_PHONE_COUNTRY,
   occupation: "",
   heardAbout: "",
   heardAboutOther: "",
 };
 
-type Registered = Fields & { phoneDisplay: string; alreadyRegistered: boolean };
+export type Registered = Fields & { phoneDisplay: string; alreadyRegistered: boolean };
 
 /**
  * The registration form is a paper pass, the same object guests are sent as a ticket:
@@ -33,13 +43,25 @@ type Registered = Fields & { phoneDisplay: string; alreadyRegistered: boolean };
  *
  * The form checks everything before sending, so a guest sees every mistake at once; the
  * action checks again and saves (app/register/actions.ts).
+ *
+ * It opens in a modal from the night's button. Whether the guest has registered is held
+ * by the page (`registered` / `onRegistered`), so closing the modal and opening it again
+ * shows the stamped pass rather than an empty form.
  */
-export function RegistrationPass({ day }: { day: RegistrationDay }) {
+export function RegistrationPass({
+  day,
+  registered,
+  onRegistered,
+}: {
+  day: RegistrationDay;
+  registered: Registered | null;
+  onRegistered: (details: Registered) => void;
+}) {
   const [fields, setFields] = useState<Fields>(EMPTY);
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState<string | null>(null);
-  const [registered, setRegistered] = useState<Registered | null>(null);
   const [pending, startTransition] = useTransition();
+  const passRef = useRef<HTMLElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   function update(key: keyof Fields, value: string) {
@@ -82,8 +104,8 @@ export function RegistrationPass({ day }: { day: RegistrationDay }) {
         return;
       }
 
-      const phone = checkRegistrationPhone(fields.phone);
-      setRegistered({
+      const phone = checkRegistrationPhone(fields.phone, fields.phoneCountry);
+      onRegistered({
         ...fields,
         firstName: fields.firstName.trim(),
         lastName: fields.lastName.trim(),
@@ -92,27 +114,31 @@ export function RegistrationPass({ day }: { day: RegistrationDay }) {
         phoneDisplay: phone.ok ? phone.display : fields.phone,
         alreadyRegistered: result.alreadyRegistered,
       });
-      window.scrollTo({ top: 0 });
+      // The modal scrolls on its own; bring the stamped top of the pass into view.
+      passRef.current?.scrollIntoView({ block: "start" });
     });
   }
 
   return (
-    <article className={day.accentClass}>
+    <article ref={passRef} className={`scroll-mt-4 ${day.accentClass}`}>
       {/* ---- The stub: which night ------------------------------------------------ */}
       <header className="theme-paper reg-cut-bottom flex rounded-t-[1.75rem] bg-card text-card-foreground">
         <div className="min-w-0 flex-1 px-6 pt-7 pb-7">
           {day.subtitle ? (
             <p className="mb-2 text-sm font-semibold text-muted-foreground">{day.subtitle}</p>
           ) : null}
-          <h1 className="text-[2rem] leading-[0.95] font-extrabold tracking-[-0.03em] text-balance break-words [font-stretch:112%] min-[400px]:text-[2.375rem]">
+          <h2
+            id={registrationTitleId(day)}
+            className="text-[2rem] leading-[0.95] font-extrabold tracking-[-0.03em] text-balance break-words [font-stretch:112%] min-[400px]:text-[2.375rem]"
+          >
             {day.name}
-          </h1>
+          </h2>
           <p className="mt-4 text-[0.95rem] text-pretty text-muted-foreground">
             {registered
               ? registered.alreadyRegistered
-                ? "You were already on the list for tonight."
-                : "You're on the list for tonight."
-              : "Fill in your details to register for tonight."}
+                ? "You were already on the list for this night."
+                : "You're on the list for this night."
+              : "Fill in your details to register for this night."}
           </p>
         </div>
 
@@ -178,15 +204,9 @@ export function RegistrationPass({ day }: { day: RegistrationDay }) {
               onChange={update}
             />
 
-            <Line
-              name="phone"
-              label="Phone number"
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              placeholder="024 123 4567"
-              hint="Outside Ghana? Start with your country code."
+            <PhoneField
               value={fields.phone}
+              country={fields.phoneCountry}
               error={errors.phone}
               onChange={update}
             />
@@ -242,6 +262,11 @@ export function RegistrationPass({ day }: { day: RegistrationDay }) {
       </div>
     </article>
   );
+}
+
+/** The pass's title, which also names the modal it opens in. */
+export function registrationTitleId(day: RegistrationDay): string {
+  return `reg-title-${day.slug}`;
 }
 
 /** The bottom half once registered: the guest's details, printed and stamped. */
@@ -338,6 +363,129 @@ function HeardAboutSelect({
       ) : null}
     </div>
   );
+}
+
+/**
+ * The phone number, with the guest's country picked beside it: the flag and dial code
+ * show, and a native select sits invisibly over them, so a tap opens the phone's own
+ * list. Ghana is picked to start with. A number pasted with its own `+1…` code moves the
+ * picker to match, so the two never disagree on screen.
+ */
+function PhoneField({
+  value,
+  country,
+  error,
+  onChange,
+}: {
+  value: string;
+  country: string;
+  error?: string;
+  onChange: (name: keyof Fields, value: string) => void;
+}) {
+  const id = "reg-phone";
+  const { pinned, rest } = phoneCountries();
+  const current = [...pinned, ...rest].find((c) => c.code === country) ?? pinned[0];
+  // Ghana keeps the way Ghanaians write their own number; elsewhere, the country's own
+  // example mobile number, so a guest sees how much to type.
+  const placeholder =
+    current.code === "GH"
+      ? "024 123 4567"
+      : (getExampleNumber(current.code, examples)?.formatNational() ?? "");
+
+  function onNumber(next: string) {
+    onChange("phone", next);
+    const typed = next.replace(/[\s()\-.]/g, "");
+    if (typed.startsWith("+") || typed.startsWith("00")) {
+      const detected = detectCountry(typed.startsWith("00") ? `+${typed.slice(2)}` : typed);
+      if (detected && detected !== country) onChange("phoneCountry", detected);
+    }
+  }
+
+  return (
+    <div className="min-w-0">
+      <label htmlFor={id} className="block text-[0.8125rem] font-semibold text-muted-foreground">
+        Phone number
+      </label>
+      <div className="flex items-end gap-3">
+        <div className="relative shrink-0">
+          <select
+            aria-label="Country"
+            name="phoneCountry"
+            value={current.code}
+            onChange={(e) => onChange("phoneCountry", e.target.value as CountryCode)}
+            className="peer absolute inset-0 z-10 w-full cursor-pointer opacity-0"
+          >
+            <optgroup label="Common">
+              {pinned.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.flag} {c.name} (+{c.dial})
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="All countries">
+              {rest.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.flag} {c.name} (+{c.dial})
+                </option>
+              ))}
+            </optgroup>
+          </select>
+          <span
+            aria-hidden
+            className="flex h-11 items-center gap-1.5 border-b-2 border-foreground/30 pr-1 text-[1.0625rem] font-semibold text-foreground peer-focus-visible:border-[var(--day)]"
+          >
+            <span className="text-xl leading-none">{current.flag}</span>
+            <span className="tabular-nums">+{current.dial}</span>
+            <ChevronDownIcon className="size-4 text-muted-foreground" />
+          </span>
+        </div>
+
+        <input
+          id={id}
+          name="phone"
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel-national"
+          enterKeyHint="next"
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onNumber(e.target.value)}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `${id}-error` : `${id}-hint`}
+          className="h-11 w-full min-w-0 flex-1 rounded-none border-0 border-b-2 border-foreground/30 bg-transparent px-0 text-[1.0625rem] font-semibold text-foreground placeholder:font-normal placeholder:text-muted-foreground/60 focus-visible:border-[var(--day)] focus-visible:outline-none aria-invalid:border-destructive"
+        />
+      </div>
+      {error ? (
+        <p id={`${id}-error`} className="mt-1.5 text-[0.8125rem] font-medium text-destructive">
+          {error}
+        </p>
+      ) : (
+        <p id={`${id}-hint`} className="mt-1.5 text-[0.8125rem] text-muted-foreground">
+          Not a Ghana number? Tap the flag to choose your country.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Which country a number typed with its own `+` code belongs to.
+ *
+ * Several countries share a code, and the compact number data cannot always tell them
+ * apart: a UK mobile parses as Guernsey. So a pinned country wins — the number's own
+ * country if it is one (a Toronto number is Canada), else the pinned country with that
+ * code (+44 is the UK, +1 the USA). Only the flag depends on this; the number is saved
+ * and checked in full either way.
+ */
+function detectCountry(international: string): CountryCode | undefined {
+  const { pinned } = phoneCountries();
+  const parsed = parsePhoneNumberFromString(international);
+  if (parsed?.isValid() && pinned.some((c) => c.code === parsed.country)) return parsed.country;
+
+  const formatter = new AsYouType();
+  formatter.input(international);
+  const code = formatter.getCallingCode();
+  return pinned.find((c) => c.dial === code)?.code ?? parsed?.country ?? formatter.getCountry();
 }
 
 /**

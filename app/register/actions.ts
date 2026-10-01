@@ -6,7 +6,6 @@ import { z } from "zod";
 import { clientEnv, serverEnv } from "@/lib/env";
 import { messaging } from "@/lib/messaging";
 import { composeRegistrationEmail } from "@/lib/messaging/email";
-import { formatGhanaPhone } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getRegistrationDay, type RegistrationDay } from "@/lib/registration-days";
 import {
@@ -26,6 +25,7 @@ const input = z.object({
   lastName: z.string(),
   email: z.string(),
   phone: z.string(),
+  phoneCountry: z.string(),
   occupation: z.string(),
   heardAbout: z.string(),
   heardAboutOther: z.string(),
@@ -55,7 +55,7 @@ export async function registerGuest(raw: unknown): Promise<RegisterResult> {
   if (!day) return { ok: false, error: "That registration page does not exist." };
 
   const fieldErrors = validateRegistration(fields);
-  const phone = checkRegistrationPhone(fields.phone);
+  const phone = checkRegistrationPhone(fields.phone, fields.phoneCountry);
   if (Object.keys(fieldErrors).length > 0 || !phone.ok) {
     return { ok: false, error: "Check the details marked below.", fieldErrors };
   }
@@ -86,7 +86,7 @@ export async function registerGuest(raw: unknown): Promise<RegisterResult> {
   }
 
   // After the response, so the guest at the door is not kept waiting on Resend.
-  after(() => notifyOrganiser(data.id, day, row));
+  after(() => notifyOrganiser(data.id, day, phone.display, row));
 
   return { ok: true, alreadyRegistered: false };
 }
@@ -102,6 +102,7 @@ export async function registerGuest(raw: unknown): Promise<RegisterResult> {
 async function notifyOrganiser(
   id: string,
   day: RegistrationDay,
+  phoneDisplay: string,
   row: {
     first_name: string;
     last_name: string;
@@ -119,7 +120,7 @@ async function notifyOrganiser(
     night: `Night ${day.number} · ${day.name}`,
     name: `${row.first_name} ${row.last_name}`,
     email: row.email,
-    phone: formatGhanaPhone(row.phone),
+    phone: phoneDisplay,
     occupation: row.occupation,
     heardAbout: row.heard_about_other
       ? `${row.heard_about}: ${row.heard_about_other}`

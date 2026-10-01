@@ -5,7 +5,10 @@
  * runs it again because the form is not the only thing that can call the action. Limits
  * mirror the CHECK constraints on `public.registrations`.
  */
+import { parsePhoneNumberFromString } from "libphonenumber-js";
+
 import { normalizeGhanaPhone, formatGhanaPhone } from "@/lib/phone";
+import { toPhoneCountry } from "@/lib/phone-countries";
 import { HEARD_ABOUT_OPTIONS } from "@/lib/registration-days";
 
 export type RegistrationFields = {
@@ -13,6 +16,8 @@ export type RegistrationFields = {
   lastName: string;
   email: string;
   phone: string;
+  /** ISO code of the country picked beside the number: "GH", "US". */
+  phoneCountry: string;
   occupation: string;
   heardAbout: string;
   /** Only read when `heardAbout` is "Other". */
@@ -30,25 +35,46 @@ export const REGISTRATION_LIMITS = {
 
 /**
  * Guests register in person, and the Day 3 crowd is the diaspora, so a UK or US number is
- * normal here. A Ghanaian number is normalised the way checkout does it; anything that
- * starts with a country code is kept as typed, as long as it has the digits of a real
- * number. `display` is how the number reads back on the pass.
+ * normal here. The guest picks their country beside the field and types the number the
+ * way they would say it at home; a number typed or pasted with its own `+` (or `00`)
+ * code wins over the picker.
+ *
+ * A Ghanaian number goes through checkout's own rules (mobile prefixes, `lib/phone.ts`).
+ * Any other is checked against that country's real number plan by libphonenumber, so a
+ * US number a digit short is caught rather than saved. `display` is how the number reads
+ * back on the pass and in the organiser's email.
  */
 export function checkRegistrationPhone(
   input: string,
+  country: string,
 ): { ok: true; e164: string; display: string } | { ok: false; error: string } {
-  const cleaned = input.replace(/[\s()\-.]/g, "");
+  let cleaned = input.replace(/[\s()\-.]/g, "");
   if (!cleaned) return { ok: false, error: "Enter your phone number" };
+  if (cleaned.startsWith("00")) cleaned = `+${cleaned.slice(2)}`;
 
-  const ghana = normalizeGhanaPhone(cleaned);
-  if (ghana.ok) return { ok: true, e164: ghana.e164, display: formatGhanaPhone(ghana.e164) };
+  const picked = toPhoneCountry(country);
+  if (!picked) return { ok: false, error: "Choose your country" };
 
-  if (cleaned.startsWith("+") && !cleaned.startsWith("+233")) {
-    return /^\+[1-9]\d{7,14}$/.test(cleaned)
-      ? { ok: true, e164: cleaned, display: input.trim() }
-      : { ok: false, error: "Check the number. Include the country code, like +44 7700 900123" };
+  const international = cleaned.startsWith("+");
+  if (international ? cleaned.startsWith("+233") : picked === "GH") {
+    const ghana = normalizeGhanaPhone(cleaned);
+    return ghana.ok
+      ? { ok: true, e164: ghana.e164, display: formatGhanaPhone(ghana.e164) }
+      : { ok: false, error: ghana.error };
   }
-  return { ok: false, error: ghana.error };
+
+  const parsed = international
+    ? parsePhoneNumberFromString(cleaned)
+    : parsePhoneNumberFromString(cleaned, picked);
+  if (!parsed?.isValid()) {
+    return {
+      ok: false,
+      error: international
+        ? "Check the number and its country code"
+        : "Check the number, or the country beside it",
+    };
+  }
+  return { ok: true, e164: parsed.number, display: parsed.formatInternational() };
 }
 
 export function validateRegistration(fields: RegistrationFields): RegistrationErrors {
@@ -67,7 +93,7 @@ export function validateRegistration(fields: RegistrationFields): RegistrationEr
     errors.email = "That email is missing something, like name@example.com";
   }
 
-  const phone = checkRegistrationPhone(fields.phone);
+  const phone = checkRegistrationPhone(fields.phone, fields.phoneCountry);
   if (!phone.ok) errors.phone = phone.error;
 
   if (!fields.occupation.trim()) errors.occupation = "Enter what you do";

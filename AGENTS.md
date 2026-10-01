@@ -179,16 +179,27 @@ Pricing cards at the foot of the page, a drawer for the cart, and a rail (deskto
 
 ## Door registration (`/register`)
 
-- One form per night, `/register/day-1` … `day-3`, each its own QR on the door. The nights
-  are config in `lib/registration-days.ts`, not `events` rows; `registrations.day` is the
-  night's number.
+- One page, built like the ticket page: the published event's cover as the hero, its
+  name, venue, dates and a clamped description, then **a button per night that opens its
+  pass in a modal** (`register-nights.tsx`). `/register/day-1` … `day-3` are the same page
+  with that night's modal already open — printed QR codes point at them, so keep them
+  working. The modal is a full-screen scrolling popup (repeats `theme-night`, since it is
+  a portal); who registered for which night lives in `RegisterNights`, so a reopened
+  modal shows the stamped pass and the button reads "Registered". The nights are config in `lib/registration-days.ts`, not `events` rows;
+  `registrations.day` is the night's number. With no published event the form still
+  works, without the hero.
 - Validation is `lib/registration.ts`, run by the form and again by the action
   (`app/register/actions.ts`). `HEARD_ABOUT_OPTIONS` is mirrored by a CHECK constraint —
   change both together.
 - `anon` has no grant on `registrations`; the action writes with the secret key, and only
   admins can read. A repeat email for the same night hits the unique index and is shown as
   "already on the list", not as an error.
-- Foreign phone numbers are accepted here (the diaspora night), unlike checkout.
+- Foreign phone numbers are accepted here (the diaspora night), unlike checkout. The
+  guest picks a country beside the field (Ghana first; common diaspora countries pinned,
+  `lib/phone-countries.ts`) and types the number as they would at home. Ghana goes
+  through `lib/phone.ts`; every other country is checked by `libphonenumber-js` against
+  its real number plan. A number typed with its own `+`/`00` code wins over the picker,
+  and moves it. Flag emoji show as letters on Windows desktops; guests use phones.
 - Each new registration emails `REGISTRATION_NOTIFY_EMAIL` (the organiser), sent from
   `after()` so the guest is not kept waiting. It goes straight to Resend, not through the
   outbox (`message_deliveries` must belong to an order or broadcast): a failed send is
@@ -197,12 +208,10 @@ Pricing cards at the foot of the page, a drawer for the cart, and a rail (deskto
 - **Guests fill it in on their own phones**, from a shared link or QR. It is not a kiosk:
   the stamped pass ends the flow, and shared-device affordances ("Register another
   guest") were built once and removed.
-- The pages sit on kente cloth (`public/register/kente.jpg`, `.reg-backdrop`, set in
-  `app/register/layout.tsx`), tiled at the photo's 387px width because stretching it
-  went soft. Text placed straight on the cloth needs `text-foreground`; the mauve
-  `muted-foreground` sinks into the pattern.
-- The pass's notches are mask cut-outs (`.reg-cut-top` / `.reg-cut-bottom`), not the
-  page-coloured circles of `.ticket-perf`, which show as dots on a patterned backdrop.
+- The page is the ticket page's plain `.theme-night` background. It sat on kente cloth
+  once; that was dropped so the two pages read as one site.
+- The pass's notches are mask cut-outs (`.reg-cut-top` / `.reg-cut-bottom`), so they show
+  whatever is behind the pass.
 - Admin: `/admin/registrations` — a tab per night, search, and the "how they heard"
   breakdown. Its CSV (`/export`) follows both the tab and the search, and re-checks the
   admin role itself, like every route handler.

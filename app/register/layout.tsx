@@ -1,12 +1,9 @@
 /**
- * Both registration pages share the night palette and the kente backdrop. The backdrop is
- * its own fixed layer behind the content, so it stays put while the form scrolls.
+ * The registration pages share the ticket page's night palette, pinned dark whatever the
+ * device prefers, so the two read as one site.
  */
 export default function RegisterLayout({ children }: LayoutProps<"/register">) {
   return (
-    <div className="theme-night relative isolate min-h-dvh text-foreground">
-      <div aria-hidden className="reg-backdrop fixed inset-0 -z-10" />
-      {children}
-    </div>
+    <div className="theme-night min-h-dvh bg-background text-foreground">{children}</div>
   );
 }

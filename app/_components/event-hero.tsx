@@ -12,23 +12,28 @@ import { BackButton } from "./back-button";
  * New covers are uploaded to the `event-covers` bucket, but one set by URL before uploads
  * existed may point at any host. That rules out `next/image`, which refuses any host not
  * listed in `remotePatterns` and would turn it into a 500 on the buyer's first screen.
+ *
+ * `showControls={false}` drops the back and share buttons — the registration page, which
+ * guests open from a QR at the door, has no use for either.
  */
 export function EventHero({
   src,
   eventName,
+  showControls = true,
 }: {
   src: string | null;
   eventName: string;
+  showControls?: boolean;
 }) {
-  const controls = (
+  const controls = showControls ? (
     <div className="flex items-center justify-between">
       <BackButton onImage={Boolean(src)} />
       <ShareButton eventName={eventName} onImage={Boolean(src)} />
     </div>
-  );
+  ) : null;
 
   if (!src) {
-    return <div className="px-6 pt-5 sm:px-8">{controls}</div>;
+    return controls ? <div className="px-6 pt-5 sm:px-8">{controls}</div> : null;
   }
 
   return (
@@ -59,13 +64,17 @@ export function EventHero({
         />
 
         {/* Keeps the round controls legible over a bright photo. */}
-        <div
-          aria-hidden
-          className="absolute inset-x-0 top-0 h-24 bg-linear-to-b from-black/50 to-transparent"
-        />
+        {controls ? (
+          <div
+            aria-hidden
+            className="absolute inset-x-0 top-0 h-24 bg-linear-to-b from-black/50 to-transparent"
+          />
+        ) : null}
       </div>
 
-      <div className="absolute inset-x-4 top-4 sm:inset-x-5 sm:top-5">{controls}</div>
+      {controls ? (
+        <div className="absolute inset-x-4 top-4 sm:inset-x-5 sm:top-5">{controls}</div>
+      ) : null}
 
       {/* The tear only exists where there is something to tear from. */}
       <div className="px-6 sm:px-8">

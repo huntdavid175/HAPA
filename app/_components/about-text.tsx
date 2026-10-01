@@ -27,7 +27,7 @@ export function AboutText({ html, clampAfter = 5 }: { html: string; clampAfter?:
       <div className="relative">
         <div
           className={`prose-event text-sm leading-relaxed text-muted-foreground sm:text-base ${
-            collapsed ? "line-clamp-5" : ""
+            collapsed ? CLAMP[clampAfter] ?? "line-clamp-5" : ""
           }`}
           dangerouslySetInnerHTML={{ __html: html }}
         />
@@ -55,6 +55,13 @@ export function AboutText({ html, clampAfter = 5 }: { html: string; clampAfter?:
     </div>
   );
 }
+
+/** Written out in full so Tailwind sees each class. */
+const CLAMP: Record<number, string> = {
+  3: "line-clamp-3",
+  4: "line-clamp-4",
+  5: "line-clamp-5",
+};
 
 function Chevrons({ up }: { up: boolean }) {
   return (

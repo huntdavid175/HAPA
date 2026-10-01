@@ -342,24 +342,6 @@
 }
 
 /**
- * The registration pages sit on kente cloth, under a plum wash so the pattern reads as
- * texture and the paper pass stays the brightest thing on screen. The wash is the night
- * page's own #141016, so the page still belongs to `.theme-night`.
- *
- * Tiled at the photo's own size rather than stretched to cover: the source is 387px wide,
- * and blown up to a desktop screen it went soft, while cloth repeating is what cloth does.
- * On a fixed layer, not `background-attachment: fixed`, which iOS Safari ignores.
- */
-.reg-backdrop {
-  background-color: #141016;
-  background-image:
-    linear-gradient(rgb(20 16 22 / 0.7), rgb(20 16 22 / 0.7)),
-    url("/register/kente.jpg");
-  background-size: auto, 387px auto;
-  background-repeat: no-repeat, repeat;
-}
-
-/**
  * The notches at the tear, cut as real holes. `.ticket-perf` paints its notches in the
  * page colour, which works on a flat page and shows as two plum dots on cloth. Here each
  * half has half a circle masked out of its edge at the tear, so the backdrop shows

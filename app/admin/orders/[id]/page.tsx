@@ -123,7 +123,7 @@ export default async function OrderDetailPage({ params }: PageProps<"/admin/orde
           <AlertTitle>Owed a refund</AlertTitle>
           <AlertDescription>
             {order.refundReason ?? "This order was paid but could not be fully issued."}{" "}
-            Refund it in the Paystack dashboard, then record it with Mark refunded.
+            Refund it in the Moolre dashboard, then record it with Mark refunded.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -311,7 +311,7 @@ export default async function OrderDetailPage({ params }: PageProps<"/admin/orde
                   </div>
                 ) : null}
                 <div className="flex items-center justify-between gap-4">
-                  <dt>Paystack ref</dt>
+                  <dt>Payment ref</dt>
                   <dd className="truncate font-mono">{order.reference}</dd>
                 </div>
               </dl>

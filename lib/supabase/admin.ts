@@ -10,7 +10,7 @@ import type { Database } from "@/lib/database.types";
  *
  * Only for server-side paths that must act outside any user session:
  *   - buyer checkout (buyers are anonymous and the publishable key cannot insert orders)
- *   - the Paystack webhook (no user, must issue tickets)
+ *   - the Moolre payment webhook (no user, must issue tickets)
  *   - cron workers (hold expiry, message delivery)
  *
  * Never import this into a Client Component — `server-only` turns that into a build

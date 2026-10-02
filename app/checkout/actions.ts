@@ -7,13 +7,9 @@ import { z } from "zod";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeGhanaPhone } from "@/lib/phone";
-import {
-  buildReference,
-  checkoutCallbackUrl,
-  initializeTransaction,
-} from "@/lib/paystack";
+import { buildReference, createPaymentLink } from "@/lib/moolre";
 import { checkoutEnabled } from "@/lib/env";
-import { toCurrency } from "@/lib/currency";
+import { ONLINE_CURRENCY } from "@/lib/currency";
 
 export type CheckoutState = { error: string | null };
 
@@ -39,12 +35,15 @@ async function hashedIp(): Promise<string | null> {
   return createHash("sha256").update(ip).digest("hex").slice(0, 32);
 }
 
+/** How long stock is held for a buyer at Moolre; the payment link expires with it. */
+const HOLD_MINUTES = 10;
+
 /**
- * Reserves stock, then opens a Paystack checkout.
+ * Reserves stock, then sends the buyer to a Moolre payment link.
  *
  * The reservation comes first on purpose: taking a payment for tickets we might not have
  * is far worse than occasionally holding stock for a buyer who abandons. The hold lapses
- * by itself after ten minutes.
+ * by itself after ten minutes, and the link expires at the same moment.
  */
 export async function startCheckout(
   _prev: CheckoutState,
@@ -81,6 +80,25 @@ export async function startCheckout(
   }
 
   const db = createAdminClient();
+
+  // Moolre settles cedis only. A dollar tier is "contact to book" on the page, but the
+  // browser is not trusted to have shown that — check the tiers themselves, before
+  // anything is held.
+  const { data: tierRows, error: tierError } = await db
+    .from("ticket_tiers")
+    .select("id, currency")
+    .in(
+      "id",
+      parsed.data.items.map((i) => i.tier_id),
+    );
+  if (tierError) return { error: "Could not check those tickets. Please try again." };
+  if ((tierRows ?? []).some((t) => t.currency !== ONLINE_CURRENCY)) {
+    return {
+      error:
+        "That ticket is booked directly with the organiser. See the bookings contacts on the event page.",
+    };
+  }
+
   const reference = buildReference();
 
   // Buyers are anonymous, so this runs under the secret key. reserve_tickets is what
@@ -93,7 +111,7 @@ export async function startCheckout(
     p_buyer_email: parsed.data.email,
     p_reference: reference,
     p_ip_hash: (await hashedIp()) ?? undefined,
-    p_hold_minutes: 10,
+    p_hold_minutes: HOLD_MINUTES,
   });
 
   if (reserveError) {
@@ -104,26 +122,29 @@ export async function startCheckout(
   const order = reserved?.[0];
   if (!order) return { error: "Could not hold those tickets. Please try again." };
 
-  let authorizationUrl: string;
+  // reserve_tickets settled the currency from the tiers; the check above means it is
+  // cedis, but a dollar order reaching Moolre would be charged in the wrong unit.
+  if (order.currency !== ONLINE_CURRENCY) {
+    await db.from("orders").update({ status: "failed" }).eq("id", order.order_id);
+    return { error: "That ticket is booked directly with the organiser." };
+  }
+
+  let paymentUrl: string;
   try {
-    const init = await initializeTransaction({
-      email: parsed.data.email,
+    const link = await createPaymentLink({
       amountPesewas: order.total_pesewas,
-      // The currency reserve_tickets settled on from the tiers themselves — never one the
-      // browser sent, which could otherwise ask for dollars at a cedi price.
-      currency: toCurrency(order.currency),
       reference,
-      callbackUrl: checkoutCallbackUrl(reference),
-      metadata: { order_id: order.order_id, buyer_name: parsed.data.name },
+      expiresInMinutes: HOLD_MINUTES,
+      metadata: { order_id: order.order_id },
     });
-    authorizationUrl = init.authorizationUrl;
+    paymentUrl = link.url;
   } catch (error) {
     // Release the hold immediately rather than leaving stock stranded for ten minutes
-    // because Paystack was unreachable.
+    // because Moolre was unreachable.
     await db.from("orders").update({ status: "failed" }).eq("id", order.order_id);
     const message = error instanceof Error ? error.message : String(error);
     return { error: `Could not start payment: ${message}` };
   }
 
-  redirect(authorizationUrl);
+  redirect(paymentUrl);
 }

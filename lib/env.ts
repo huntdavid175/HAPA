@@ -23,12 +23,6 @@ const clientSchema = z.object({
       "sb_publishable_",
       "expected a Supabase publishable key (sb_publishable_…), not the legacy anon JWT",
     ),
-  // Optional while payments are deferred. Still prefix-checked when present, so a wrong
-  // key is caught at boot rather than at checkout.
-  NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY: z
-    .string()
-    .startsWith("pk_", "expected a Paystack public key (pk_test_… / pk_live_…)")
-    .optional(),
   NEXT_PUBLIC_SENTRY_DSN: z.url().optional(),
 });
 
@@ -42,22 +36,30 @@ const serverSchema = z
         "expected a Supabase secret key (sb_secret_…), not the legacy service_role JWT",
       ),
 
-    // Optional while payments are deferred — see requirePaystack() below, which is what
-    // the checkout and webhook paths must call so a missing key fails loudly at the point
-    // of use instead of silently taking a payment path with no credentials.
-    PAYSTACK_SECRET_KEY: z
-      .string()
-      .startsWith("sk_", "expected a Paystack SECRET key (sk_test_… / sk_live_…)")
+    // Moolre payment links (lib/moolre.ts). All optional at boot so the site runs before
+    // the account is set up — paymentsEnabled() is what switches checkout on, and
+    // requireMoolre() is what the payment paths call so a missing value fails loudly at
+    // the point of use. MOOLRE_API_URL picks the environment:
+    // https://sandbox.moolre.com to test, https://api.moolre.com live.
+    MOOLRE_API_URL: z
+      .url()
+      .refine((v) => !v.endsWith("/"), "must not have a trailing slash")
       .optional(),
+    MOOLRE_API_USER: z.string().min(1).optional(),
+    // The *public* API key. Moolre's payment-link and status endpoints authenticate with
+    // it; it still stays server-side — nothing here is sent to the browser.
+    MOOLRE_API_PUBKEY: z.string().min(1).optional(),
+    MOOLRE_ACCOUNT_NUMBER: z.string().min(1).optional(),
+    // The business email Moolre's payment link asks for. Not the buyer's.
+    MOOLRE_MERCHANT_EMAIL: z.email().optional(),
 
     // Guards the hold-expiry sweeper and the delivery worker.
     CRON_SECRET: z.string().min(32, "use at least 32 chars of randomness"),
 
     MESSAGING_PROVIDER: z.enum(["stub", "moolre"]).default("stub"),
-    MOOLRE_API_URL: z.url().optional(),
-    MOOLRE_API_USER: z.string().optional(),
+    // SMS/WhatsApp through Moolre use their own VAS key and sender ID, on top of the
+    // MOOLRE_API_URL, MOOLRE_API_USER and MOOLRE_ACCOUNT_NUMBER above.
     MOOLRE_API_KEY: z.string().optional(),
-    MOOLRE_ACCOUNT_NUMBER: z.string().optional(),
     MOOLRE_SENDER_ID: z.string().optional(),
 
     // Email is routed separately from SMS/WhatsApp, so tickets can go out by email while
@@ -125,7 +127,6 @@ function readClientEnv(): ClientEnv {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-    NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN || undefined,
   });
   if (!parsed.success) fail("client", parsed.error);
@@ -158,20 +159,48 @@ export function assertEnv(): void {
   serverEnv();
 }
 
-/** True when Paystack credentials are configured; drives the "payments not live" UI. */
+export type MoolreConfig = {
+  apiUrl: string;
+  user: string;
+  pubKey: string;
+  accountNumber: string;
+  merchantEmail: string;
+};
+
+function moolreConfig(): MoolreConfig | null {
+  const env = serverEnv();
+  if (
+    !env.MOOLRE_API_URL ||
+    !env.MOOLRE_API_USER ||
+    !env.MOOLRE_API_PUBKEY ||
+    !env.MOOLRE_ACCOUNT_NUMBER ||
+    !env.MOOLRE_MERCHANT_EMAIL
+  ) {
+    return null;
+  }
+  return {
+    apiUrl: env.MOOLRE_API_URL,
+    user: env.MOOLRE_API_USER,
+    pubKey: env.MOOLRE_API_PUBKEY,
+    accountNumber: env.MOOLRE_ACCOUNT_NUMBER,
+    merchantEmail: env.MOOLRE_MERCHANT_EMAIL,
+  };
+}
+
+/** True when Moolre is fully configured; drives the "payments not live" UI. */
 export function paymentsEnabled(): boolean {
-  return Boolean(serverEnv().PAYSTACK_SECRET_KEY);
+  return moolreConfig() !== null;
 }
 
 /**
- * Checkout is paused by hand for now, whatever Paystack's configuration: the page and
+ * Checkout is paused by hand for now, whatever Moolre's configuration: the page and
  * the drawer show the whole flow, but the Pay button is disabled and `startCheckout`
  * refuses. Set this to false and redeploy to sell again.
  *
  * Only new checkouts stop: the webhook and the order page still use `paymentsEnabled`,
- * so an order already at Paystack settles and issues its tickets.
+ * so an order already at Moolre settles and issues its tickets.
  */
-const CHECKOUT_PAUSED = false;
+const CHECKOUT_PAUSED = true;
 
 export function checkoutPaused(): boolean {
   return CHECKOUT_PAUSED;
@@ -185,17 +214,17 @@ export function checkoutEnabled(): boolean {
 /**
  * Call this at the top of any code path that is about to move money.
  *
- * Paystack is optional at boot while verification is pending, which means a checkout
- * route could otherwise run with no credentials and fail somewhere deep in a fetch. This
- * turns that into one clear error at the boundary.
+ * Moolre is optional at boot, which means a checkout or callback could otherwise run with
+ * no credentials and fail somewhere deep in a fetch. This turns that into one clear error
+ * at the boundary.
  */
-export function requirePaystack(): string {
-  const key = serverEnv().PAYSTACK_SECRET_KEY;
-  if (!key) {
+export function requireMoolre(): MoolreConfig {
+  const config = moolreConfig();
+  if (!config) {
     throw new Error(
-      "PAYSTACK_SECRET_KEY is not set — payments are not configured yet. " +
-        "Add Paystack test keys to .env.local before using any checkout path.",
+      "Moolre is not configured — set MOOLRE_API_URL, MOOLRE_API_USER, MOOLRE_API_PUBKEY, " +
+        "MOOLRE_ACCOUNT_NUMBER and MOOLRE_MERCHANT_EMAIL (sandbox values in .env.local).",
     );
   }
-  return key;
+  return config;
 }

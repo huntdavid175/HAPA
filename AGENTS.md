@@ -21,16 +21,26 @@ Read `plan.md` for where the build is.
 - **Each tier has a currency, GHS or USD** (`lib/currency.ts`, mirrored by CHECK
   constraints). `_pesewas` columns hold the minor unit of their row's currency — cents
   for a USD tier — and the names predate the change. Orders snapshot their currency.
-- **One currency per order.** Paystack charges one currency per payment, so
-  `reserve_tickets` refuses a mixed order and returns the currency to charge; the cart
-  asks before switching rather than mixing. Never sum amounts across currencies —
-  `formatTotals` shows one total per currency.
-- USD checkouts are card only (mobile money is cedis only), and fail at Paystack until
-  USD is enabled on the account.
-- **Only the Paystack webhook issues tickets and queues their delivery.** The redirect
-  callback verifies for UX: mobile money often confirms after the buyer has closed the
-  tab. (It also calls `issue_tickets_for_order`, which is idempotent, but it queues no
-  message — only the webhook does.)
+- **Payments are Moolre payment links** (`lib/moolre.ts`): checkout reserves stock, then
+  redirects to a hosted Moolre page created per order, expiring with the 10-minute hold.
+  Paystack was removed; `orders.paystack_reference` / `.paystack_channel` keep their
+  names (like `_pesewas`) and now hold our Moolre `externalref` and `"moolre"`.
+- **Only cedis are sold online.** Moolre settles GHS (and NGN), not USD. A USD tier is
+  shown with its price and **"Contact to book"**, linking to the bookings section
+  (`#bookings`, `events.booking_info`); `startCheckout` refuses a non-GHS tier before
+  reserving anything (`ONLINE_CURRENCY` in `lib/currency.ts`). The cart still never mixes
+  currencies, and `reserve_tickets` still refuses a mixed order. Never sum amounts across
+  currencies — `formatTotals` shows one total per currency.
+- **Moolre callbacks are not signed.** Anyone can post to `/api/webhooks/moolre`, so the
+  body only names the order; `getPaymentStatus` — asked by us, with our key — is the only
+  thing that grants tickets, and only for `txstatus: 1` with the order's exact amount.
+  Moolre documents no other `txstatus` value, so anything else is "not paid yet", never
+  "failed": the hold lapses by itself. Do not "simplify" the status call away.
+- **Only the Moolre webhook issues tickets and queues their delivery.** The buyer's
+  return to `/order/[reference]` checks status for UX: mobile money often confirms after
+  the buyer has closed the tab. (It also calls `issue_tickets_for_order`, which is
+  idempotent, but it queues no message — only the webhook does.) A callback that found
+  the payment unpaid is processed again on redelivery; one handled cleanly is not.
 - **Overselling is prevented in the database** (`reserve_tickets`, row locks in id order),
   not in application code.
 - Authorization lives in `lib/auth.ts` (`requireAdmin` / `requireStaffOrAdmin`), called
@@ -54,8 +64,9 @@ Read `plan.md` for where the build is.
 
 ## Environment and deployment
 
-- **`NEXT_PUBLIC_SITE_URL` is load-bearing in three places**: the Paystack return URL
-  (`checkoutCallbackUrl`), the ticket links in every message
+- **`NEXT_PUBLIC_SITE_URL` is load-bearing in three places**: Moolre's return and
+  callback URLs (`checkoutReturnUrl`, `moolreCallbackUrl` — a wrong value means paid
+  orders never hear back), the ticket links in every message
   (`lib/messaging/ticket-message.ts`), and share links and QR codes (`lib/share.ts`).
   Wrong value means buyers get dead links, not a visible error.
 - It is `NEXT_PUBLIC_*`, so it is **inlined at build time**. Changing it in Vercel does
@@ -65,12 +76,14 @@ Read `plan.md` for where the build is.
   check and then redirects paying buyers to their own machine. It shipped that way once.
   To confirm production's value, read a recent `message_deliveries.body`: its link is
   built from it.
-- Store `PAYSTACK_SECRET_KEY` and `RESEND_API_KEY` as Vercel **Sensitive** variables, not
+- Store `MOOLRE_API_PUBKEY` and `RESEND_API_KEY` as Vercel **Sensitive** variables, not
   plain ones — plain values stay readable in the dashboard and via `vercel env pull`.
-- Rotating the Paystack key has an ordering trap: it is also the webhook HMAC-SHA512
-  signing key (`lib/paystack.ts`). Paystack signs with the new key the instant you
-  generate it, so every signature fails until Vercel is updated **and redeployed**.
-  Update `.env.local` too, or `check:paystack` and `check:webhook` fail.
+- **Checkout is on only when all five `MOOLRE_*` payment values are set** (`MOOLRE_API_URL`,
+  `_API_USER`, `_API_PUBKEY`, `_ACCOUNT_NUMBER`, `_MERCHANT_EMAIL`; `paymentsEnabled()`).
+  A deployment missing one shows "payments not live", it does not error.
+  `MOOLRE_API_URL` picks the environment: `https://sandbox.moolre.com` or
+  `https://api.moolre.com` — sandbox keys do not work against live, nor the reverse.
+  `npm run check:moolre` proves the values in `.env.local` are accepted.
 - Server env is validated at boot (`lib/env.ts`), and an **empty** value fails it:
   `RESEND_API_KEY=` is not "unset". Comment a variable out rather than blank it.
 - `main` deploys to production on Vercel. Merging is a release.
@@ -79,14 +92,18 @@ Read `plan.md` for where the build is.
 
 `npm run check` runs everything. Individually: `check:datetime`, `check:phone`,
 `check:auth`, `check:broadcast`, `check:gate`, `check:checkout`, `check:webhook`,
-`check:orders`, `check:richtext`.
+`check:orders`, `check:richtext`, `check:moolre`.
 
 - Most suites need the dev server running and seed data (`npm run seed`).
 - `check:auth` needs `CHECK_ADMIN_PASSWORD` / `CHECK_STAFF_PASSWORD`. The seed prints
   passwords once and never stores them — `npm run reset:password` is the recovery path.
   The emails are overridable with `CHECK_ADMIN_EMAIL` / `CHECK_STAFF_EMAIL`.
-- `check:webhook` needs `PAYSTACK_SECRET_KEY` set **on the dev server**, not just on the
-  script. Without it the route 500s and every assertion fails confusingly.
+- `check:webhook` posts a forged "successful" Moolre callback for a real pending order on
+  its own draft event and checks nothing is issued. That case calls Moolre's status
+  endpoint, so the **dev server** needs the Moolre (sandbox) values; without them the
+  route answers 500 and those assertions fail — still issuing nothing.
+- `check:moolre` creates a GH₵1 payment link that expires in a minute and checks its
+  status reads unpaid. Safe against live: nobody pays it.
 - `check:checkout` builds its own draft event and tiers and removes them, on success and
   on failure. A multi-row insert through PostgREST sends `null`, not the column default,
   for a key only some rows carry — spell the key out on every row.
@@ -188,6 +205,10 @@ Pricing cards at the foot of the page, a drawer for the cart, and a rail (deskto
   modal shows the stamped pass and the button reads "Registered". The nights are config in `lib/registration-days.ts`, not `events` rows;
   `registrations.day` is the night's number. With no published event the form still
   works, without the hero.
+- "Invited by" is the one optional field (`registrations.invited_by`, ≤120 chars). Blank
+  is stored as **null, never ""** — the CHECK refuses an empty string, so "not answered"
+  has one spelling. It shows on the stamped pass, in the organiser's email, the admin list
+  (searchable) and the CSV; the guest's confirmation email leaves it out.
 - Validation is `lib/registration.ts`, run by the form and again by the action
   (`app/register/actions.ts`). `HEARD_ABOUT_OPTIONS` is mirrored by a CHECK constraint —
   change both together.
@@ -305,4 +326,8 @@ preview shows — use `richTextToPlain`, never the raw markup.
 - `check:orders` and `check:broadcast` look up a seed tier called "Regular" on
   `sample-event`, which the live data no longer has — both fail before testing anything.
 - Buyers' CSV export follows the search but not the status tab.
-- Paystack live keys, USD enabled on the Paystack account, and a staging project.
+- Moolre: live keys in Vercel, and one real end-to-end payment (link → pay → callback →
+  ticket email) on production before announcing sales. The callback's exact body shape
+  is undocumented beyond `status`/`code`/`message`/`data`; the route reads
+  `data.externalref`, falling back to `data.metadata.reference`.
+- A staging project.

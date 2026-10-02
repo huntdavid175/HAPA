@@ -14,7 +14,7 @@ type Ticket = { code: string; token: string };
  * than deciding once, and it never shows a "try again" button while a payment is still
  * in flight — that is how people end up paying twice.
  *
- * Pinned dark like the event page the buyer just came from; arriving back from Paystack
+ * Pinned dark like the event page the buyer just came from; arriving back from Moolre
  * into a differently-coloured site reads as having landed somewhere wrong.
  */
 export function OrderStatus({
@@ -43,7 +43,7 @@ export function OrderStatus({
   useEffect(() => {
     if (paid) return;
     const tick = setInterval(() => setWaited((s) => s + 5), 5000);
-    // Re-render the server component, which re-verifies with Paystack.
+    // Re-render the server component, which re-checks with Moolre.
     const poll = setInterval(() => router.refresh(), 5000);
     return () => {
       clearInterval(tick);

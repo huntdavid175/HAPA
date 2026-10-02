@@ -191,7 +191,7 @@ const refundSchema = z.object({
 /**
  * Records that an order was refunded, and kills its tickets.
  *
- * v1 moves no money: the refund itself happens in the Paystack dashboard, and this is the
+ * v1 moves no money: the refund itself happens in the Moolre dashboard, and this is the
  * record of it plus the thing that stops the ticket working at the gate. Tickets already
  * checked in keep their status — they were used — but still get stamped, because the
  * money went back either way and the stamp is what explains the discrepancy later.

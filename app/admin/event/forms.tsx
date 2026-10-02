@@ -583,9 +583,9 @@ export function TierForm({
 
           {currency === "USD" ? (
             <p className="-mt-3 text-sm text-muted-foreground">
-              Dollar tickets are paid by card only, since mobile money is cedis only. Paystack
-              has to enable USD on your account before these can be bought. A buyer&rsquo;s cart
-              holds one currency at a time.
+              Dollar tickets can&rsquo;t be paid online &mdash; Moolre takes cedis only. Buyers
+              see the price with &ldquo;Contact to book&rdquo;, which leads to the bookings
+              contacts under the ticket cards.
             </p>
           ) : null}
 

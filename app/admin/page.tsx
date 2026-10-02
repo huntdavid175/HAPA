@@ -331,9 +331,10 @@ function initials(name: string): string {
   return (words[0][0] + words[words.length - 1][0]).toUpperCase();
 }
 
-/** Paystack's channel names, as a buyer would say them. */
+/** Payment channel names, as a buyer would say them. Older orders carry Paystack's. */
 function channelLabel(channel: string): string {
   const labels: Record<string, string> = {
+    moolre: "Moolre",
     mobile_money: "mobile money",
     card: "card",
     bank: "bank",

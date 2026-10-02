@@ -13,7 +13,10 @@ export type CartTier = {
   pricePesewas: number;
   currency: Currency;
   available: number;
+  /** Includes "book_direct": a tier in a currency that cannot be paid online. */
   unavailableReason: string | null;
+  /** Where "Contact to book" leads — the bookings section — or null when there is none. */
+  bookingHref: string | null;
   highlight: boolean;
   badge: string | null;
 };
@@ -38,7 +41,7 @@ type CartValue = {
   cancelSwitch: () => void;
   clear: () => void;
   ticketCount: number;
-  /** In `currency`. One order is one Paystack charge, so it is never a mix. */
+  /** In `currency`. One order is one payment, so it is never a mix. */
   totalPesewas: number;
   /** The cart's currency, or null while it is empty. */
   currency: Currency | null;
@@ -94,7 +97,7 @@ export function CartProvider({
       const ceiling = Math.min(tier.available, MAX_PER_TIER);
 
       setQuantities((prev) => {
-        // Paystack charges one currency per payment, so a cart never mixes them. Checked
+        // One payment is one currency, so a cart never mixes them. Checked
         // against `prev` like the count, so a fast tap cannot slip a second currency in.
         if (delta > 0 && cartCurrency(tiers, prev, tier.currency) !== tier.currency) {
           return prev;

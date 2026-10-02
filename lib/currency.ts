@@ -25,3 +25,13 @@ export function isCurrency(value: unknown): value is Currency {
 export function toCurrency(value: string | null | undefined): Currency {
   return isCurrency(value) ? value : "GHS";
 }
+
+/**
+ * The one currency that can be paid online. Moolre settles cedis only, so a tier priced
+ * in anything else is "contact to book": shown on the page, never sold through checkout.
+ */
+export const ONLINE_CURRENCY: Currency = "GHS";
+
+export function payableOnline(currency: Currency): boolean {
+  return currency === ONLINE_CURRENCY;
+}

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { verifyTransaction } from "@/lib/paystack";
+import { getPaymentStatus } from "@/lib/moolre";
 import { paymentsEnabled } from "@/lib/env";
 import { formatPesewas } from "@/lib/format";
 import { toCurrency } from "@/lib/currency";
@@ -16,12 +16,13 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 /**
- * Where Paystack sends the buyer back to.
+ * Where Moolre sends the buyer back to after paying.
  *
- * This page verifies for fast feedback, but it does **not** issue tickets — that is the
- * webhook's job alone. Mobile money often confirms after the buyer has already been
- * redirected, and plenty of buyers close the tab entirely, so anything that depended on
- * this page running would lose them their ticket.
+ * This page checks with Moolre for fast feedback, and issues tickets (idempotently) when
+ * the money is there, but it does **not** queue their delivery — that is the webhook's
+ * job alone. Mobile money often confirms after the buyer has already been redirected,
+ * and plenty of buyers close the tab entirely, so anything that depended on this page
+ * running would lose them their ticket.
  */
 export default async function OrderPage({ params }: PageProps<"/order/[reference]">) {
   const { reference } = await params;
@@ -35,23 +36,25 @@ export default async function OrderPage({ params }: PageProps<"/order/[reference
 
   if (!order) notFound();
 
-  // Nudge Paystack for an answer so a buyer who returns quickly is not told "pending"
-  // when the money has already landed. Failure here is harmless — the webhook is
+  // Ask Moolre for an answer so a buyer who returns quickly is not told "pending" when
+  // the money has already landed. Failure here is harmless — the webhook is
   // authoritative and will catch up regardless.
+  //
+  // Only "paid" changes anything. Moolre documents what success looks like and nothing
+  // else, so a not-yet-paid answer is not read as failed: the stock hold lapses by
+  // itself, and a late mobile-money confirmation still finds the order pending.
   if (order.status === "pending" && paymentsEnabled()) {
     try {
-      const verified = await verifyTransaction(reference);
+      const verified = await getPaymentStatus(reference);
       if (
-        verified.status === "success" &&
+        verified.paid &&
         verified.amountPesewas === order.total_pesewas &&
-        verified.currency === order.currency
+        order.currency === "GHS"
       ) {
         await db.rpc("issue_tickets_for_order", {
           p_order_id: order.id,
-          p_channel: verified.channel ?? undefined,
+          p_channel: "moolre",
         });
-      } else if (verified.status === "failed") {
-        await db.from("orders").update({ status: "failed" }).eq("id", order.id);
       }
     } catch {
       // Ignore: the webhook remains the source of truth.

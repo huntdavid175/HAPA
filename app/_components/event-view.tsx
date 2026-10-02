@@ -3,7 +3,7 @@ import { isFullyUnavailable, type EventWithTiers } from "@/lib/events";
 import { checkoutPaused, paymentsEnabled } from "@/lib/env";
 import { ensureRichText } from "@/lib/rich-text";
 import { cheapestPrice } from "@/lib/pricing";
-import { toCurrency } from "@/lib/currency";
+import { payableOnline, toCurrency } from "@/lib/currency";
 import { EventHero } from "./event-hero";
 import { AboutText } from "./about-text";
 import { EventCrest } from "./event-crest";
@@ -25,7 +25,9 @@ export function EventView({ event }: { event: EventWithTiers }) {
   const soldOut = isFullyUnavailable(event);
   const salesClosed = event.status === "sales_closed";
   const canBuy = !soldOut && !salesClosed && event.tiers.length > 0;
-  const checkoutOpen = canBuy && paymentsEnabled();
+  // Paused shows the whole form with Pay disabled, configured or not (CHECKOUT_PAUSED);
+  // startCheckout refuses while paused, so the form cannot take a payment.
+  const checkoutOpen = canBuy && (paymentsEnabled() || checkoutPaused());
 
   const cheapest = cheapestPrice(event.tiers);
 
@@ -37,18 +39,27 @@ export function EventView({ event }: { event: EventWithTiers }) {
         ? "No ticket types have been set up for this event yet."
         : null;
 
-  const cartTiers: CartTier[] = event.tiers.map((tier) => ({
-    id: tier.id,
-    name: tier.name,
-    description: tier.description,
-    benefits: tier.benefits ?? [],
-    pricePesewas: tier.price_pesewas,
-    currency: toCurrency(tier.currency),
-    available: tier.available,
-    unavailableReason: tier.unavailableReason,
-    highlight: tier.highlight ?? false,
-    badge: tier.badge,
-  }));
+  // Moolre settles cedis only, so a tier in any other currency (the dollar table) is
+  // shown with its price but booked through the contacts under the cards. Its own
+  // availability still wins: a sold-out dollar tier says "Sold out".
+  const bookingHref = event.booking_info ? "#bookings" : null;
+  const cartTiers: CartTier[] = event.tiers.map((tier) => {
+    const currency = toCurrency(tier.currency);
+    const direct = !payableOnline(currency) && tier.unavailableReason === null;
+    return {
+      id: tier.id,
+      name: tier.name,
+      description: tier.description,
+      benefits: tier.benefits ?? [],
+      pricePesewas: tier.price_pesewas,
+      currency,
+      available: direct ? 0 : tier.available,
+      unavailableReason: direct ? "book_direct" : tier.unavailableReason,
+      bookingHref,
+      highlight: tier.highlight ?? false,
+      badge: tier.badge,
+    };
+  });
 
   return (
     <CartProvider tiers={cartTiers}>
@@ -126,8 +137,9 @@ export function EventView({ event }: { event: EventWithTiers }) {
               brings its own heading, if it wants one. */}
           {event.booking_info ? (
             <section
+              id="bookings"
               aria-label="Bookings and contact"
-              className="prose-event mt-14 max-w-[62ch] border-t border-border pt-8 text-sm leading-relaxed text-muted-foreground sm:text-base"
+              className="prose-event mt-14 scroll-mt-8 max-w-[62ch] border-t border-border pt-8 text-sm leading-relaxed text-muted-foreground sm:text-base"
               dangerouslySetInnerHTML={{ __html: event.booking_info }}
             />
           ) : null}

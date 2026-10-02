@@ -12,6 +12,7 @@ function unavailableLabel(reason: string | null) {
   if (reason === "sold_out") return "Sold out";
   if (reason === "not_yet_on_sale") return "Not on sale yet";
   if (reason === "sales_ended") return "Sales closed";
+  if (reason === "book_direct") return "Contact to book";
   return null;
 }
 
@@ -57,20 +58,24 @@ function PlanCard({
   onBump: (delta: number) => void;
 }) {
   const unavailable = unavailableLabel(tier.unavailableReason);
+  // Booked through the organiser rather than sold out: still on offer, so it keeps its
+  // full colour, its highlight and its badge.
+  const bookDirect = tier.unavailableReason === "book_direct";
+  const dimmed = unavailable && !bookDirect;
   const inCart = qty > 0;
   const price = formatPesewasParts(tier.pricePesewas, tier.currency);
 
   return (
     <li
       className={`theme-plan relative flex flex-col border-4 bg-card text-card-foreground transition ${
-        unavailable
+        dimmed
           ? "border-transparent opacity-55"
           : tier.highlight
             ? "plan-featured border-cta"
             : "border-transparent"
       }`}
     >
-      {tier.badge && !unavailable ? (
+      {tier.badge && !dimmed ? (
         <span className="absolute -top-3 left-6 bg-cta px-3 py-1 text-xs font-bold tracking-[-0.01em] text-cta-foreground">
           {tier.badge}
         </span>
@@ -132,7 +137,16 @@ function PlanCard({
           ) : null}
         </div>
 
-        {unavailable ? (
+        {tier.unavailableReason === "book_direct" && tier.bookingHref ? (
+          // Not sold online (Moolre takes cedis only): the bookings contacts under the
+          // cards. Same h-13 as every other stub, so the tears stay level.
+          <a
+            href={tier.bookingHref}
+            className="flex h-13 items-center justify-center border border-cta px-6 text-center text-[0.95rem] font-bold tracking-[-0.01em] text-foreground transition hover:bg-background focus-visible:ring-2 focus-visible:ring-cta focus-visible:ring-offset-4 focus-visible:ring-offset-background focus-visible:outline-none"
+          >
+            {unavailable}
+          </a>
+        ) : unavailable ? (
           <p className="flex h-13 items-center justify-center border border-border px-6 text-center text-[0.95rem] font-semibold text-muted-foreground">
             {unavailable}
           </p>

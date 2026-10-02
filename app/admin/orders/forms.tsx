@@ -177,7 +177,7 @@ export function RefundOrderForm({
               Voids {ticketCount === 1 ? "the ticket" : `all ${ticketCount} tickets`} on this
               order.{" "}
               <strong className="text-foreground">This does not move any money:</strong> issue
-              the refund in the Paystack dashboard yourself.
+              the refund in the Moolre dashboard yourself.
             </AlertDialogDescription>
           </AlertDialogHeader>
 

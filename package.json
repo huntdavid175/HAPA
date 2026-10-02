@@ -20,7 +20,7 @@
     "check:orders": "node --env-file=.env.local scripts/check-orders.mts",
     "reset:password": "node --env-file=.env.local scripts/reset-password.mts",
     "check:richtext": "node scripts/check-richtext.mts",
-    "check:paystack": "node --env-file=.env.local scripts/check-paystack.mts"
+    "check:moolre": "node --env-file=.env.local scripts/check-moolre.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

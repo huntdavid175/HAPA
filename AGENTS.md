@@ -238,6 +238,11 @@ Pricing cards at the foot of the page, a drawer for the cart, and a rail (deskto
   only sender. Do not trigger it by hand to test — it drains the production outbox.
 - The Resend key is **send-only**: it cannot list domains, so a domain's status has to be
   read in the Resend dashboard.
+- **The sending domain is `tickets.hapawards.com`, verified in Resend** (October 2026):
+  `EMAIL_FROM="HAPA Tickets <hello@tickets.hapawards.com>"`, replies to
+  `EMAIL_REPLY_TO=contact@hapawards.com`. `hello@` is not a mailbox, so the reply-to is
+  what makes a buyer's reply reach someone. An address on any other domain in
+  `EMAIL_FROM` fails every send with a 403.
 
 ## Styling
 
@@ -297,10 +302,6 @@ preview shows — use `richTextToPlain`, never the raw markup.
 
 ## Still open
 
-- **Resend domain.** `EMAIL_FROM` needs a domain verified in Resend. Until then only
-  `onboarding@resend.dev` sends, only to the Resend account owner's own address, and
-  lands in spam; every other buyer's ticket email fails with a 403 and is parked. Once
-  verified, retry the parked ones from Failed messages.
 - `check:orders` and `check:broadcast` look up a seed tier called "Regular" on
   `sample-event`, which the live data no longer has — both fail before testing anything.
 - Buyers' CSV export follows the search but not the status tab.

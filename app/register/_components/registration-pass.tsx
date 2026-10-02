@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { CheckIcon, ChevronDownIcon } from "lucide-react";
+import { CheckIcon, ChevronDownIcon, MailIcon } from "lucide-react";
 import {
   AsYouType,
   getExampleNumber,
@@ -295,6 +295,19 @@ function FilledIn({ details }: { details: Registered }) {
         </Printed>
         <Printed label="Phone">{details.phoneDisplay}</Printed>
       </dl>
+
+      {/* Only a new registration is emailed (app/register/actions.ts); a repeat was
+          confirmed the first time, so it is pointed back to that email. */}
+      <p className="mt-6 flex items-start gap-3 rounded-xl bg-card px-4 py-3.5 text-[0.9375rem] leading-snug text-foreground">
+        <MailIcon aria-hidden className="mt-0.5 size-5 shrink-0" style={{ color: "var(--day)" }} />
+        <span>
+          {details.alreadyRegistered
+            ? "Your event details were emailed to you when you first registered. "
+            : "We've emailed your event details to you. "}
+          <strong className="font-semibold">Check your inbox</strong>, and your spam or
+          promotions folder if it isn&apos;t there.
+        </span>
+      </p>
     </div>
   );
 }

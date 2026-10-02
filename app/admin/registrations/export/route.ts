@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   let req = supabase
     .from("registrations")
     .select(
-      "day, first_name, last_name, email, phone, occupation, heard_about, heard_about_other, created_at",
+      "day, first_name, last_name, email, phone, occupation, heard_about, heard_about_other, invited_by, created_at",
     )
     .order("created_at", { ascending: false })
     .limit(20000);
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
   if (error) return new Response(`Export failed: ${error.message}`, { status: 500 });
 
   const header = [
-    "day", "first_name", "last_name", "email", "phone", "occupation", "heard_about", "heard_about_other", "registered_at",
+    "day", "first_name", "last_name", "email", "phone", "occupation", "heard_about", "heard_about_other", "invited_by", "registered_at",
   ];
 
   const rows = (data ?? []).map((r) => [
@@ -52,6 +52,7 @@ export async function GET(request: NextRequest) {
     r.occupation,
     r.heard_about,
     r.heard_about_other ?? "",
+    r.invited_by ?? "",
     r.created_at,
   ]);
 

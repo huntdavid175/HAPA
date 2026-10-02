@@ -22,6 +22,8 @@ export type RegistrationFields = {
   heardAbout: string;
   /** Only read when `heardAbout` is "Other". */
   heardAboutOther: string;
+  /** Who invited them. Optional; blank is saved as null. */
+  invitedBy: string;
 };
 
 export type RegistrationErrors = Partial<Record<keyof RegistrationFields, string>>;
@@ -31,6 +33,7 @@ export const REGISTRATION_LIMITS = {
   email: 254,
   occupation: 120,
   heardAboutOther: 200,
+  invitedBy: 120,
 } as const;
 
 /**
@@ -79,7 +82,7 @@ export function checkRegistrationPhone(
 
 export function validateRegistration(fields: RegistrationFields): RegistrationErrors {
   const errors: RegistrationErrors = {};
-  const { name, email, occupation, heardAboutOther } = REGISTRATION_LIMITS;
+  const { name, email, occupation, heardAboutOther, invitedBy } = REGISTRATION_LIMITS;
 
   if (!fields.firstName.trim()) errors.firstName = "Enter your first name";
   else if (fields.firstName.trim().length > name) errors.firstName = "That name is too long";
@@ -108,6 +111,10 @@ export function validateRegistration(fields: RegistrationFields): RegistrationEr
     fields.heardAboutOther.trim().length > heardAboutOther
   ) {
     errors.heardAboutOther = "Keep it shorter, a few words is plenty";
+  }
+
+  if (fields.invitedBy.trim().length > invitedBy) {
+    errors.invitedBy = "That name is too long";
   }
 
   return errors;

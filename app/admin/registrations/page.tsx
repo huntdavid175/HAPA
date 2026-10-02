@@ -54,7 +54,7 @@ export default async function RegistrationsPage({
   let listRequest = supabase
     .from("registrations")
     .select(
-      "id, day, first_name, last_name, email, phone, occupation, heard_about, heard_about_other, created_at",
+      "id, day, first_name, last_name, email, phone, occupation, heard_about, heard_about_other, invited_by, created_at",
     )
     .order("created_at", { ascending: false })
     .limit(LIMIT);
@@ -156,7 +156,7 @@ export default async function RegistrationsPage({
 
             <form role="search" className="relative w-full min-w-0 sm:max-w-64 sm:flex-1">
               <label htmlFor="q" className="sr-only">
-                Search by name, email, phone or occupation
+                Search by name, email, phone, occupation or who invited them
               </label>
               {day !== "all" ? <input type="hidden" name="day" value={day} /> : null}
               <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
@@ -232,6 +232,12 @@ export default async function RegistrationsPage({
                           </p>
                           <p className="text-muted-foreground truncate text-xs">{r.email}</p>
                           <p className="text-muted-foreground text-xs tabular-nums">{phone}</p>
+                          {r.invited_by ? (
+                            <p className="text-muted-foreground truncate text-xs">
+                              Invited by{" "}
+                              <span className="text-foreground font-medium">{r.invited_by}</span>
+                            </p>
+                          ) : null}
                         </div>
                         {/* On a phone the time rides at the right of the name. */}
                         <time

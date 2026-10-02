@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       broadcasts: {
@@ -381,6 +356,7 @@ export type Database = {
           heard_about: string
           heard_about_other: string | null
           id: string
+          invited_by: string | null
           last_name: string
           occupation: string
           phone: string
@@ -393,6 +369,7 @@ export type Database = {
           heard_about: string
           heard_about_other?: string | null
           id?: string
+          invited_by?: string | null
           last_name: string
           occupation: string
           phone: string
@@ -405,6 +382,7 @@ export type Database = {
           heard_about?: string
           heard_about_other?: string | null
           id?: string
+          invited_by?: string | null
           last_name?: string
           occupation?: string
           phone?: string
@@ -818,9 +796,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       broadcast_status: ["draft", "queued", "sending", "sent", "failed"],

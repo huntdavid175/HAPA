@@ -118,6 +118,7 @@ export function composeRegistrationEmail(input: RegistrationEmailProps): EmailCo
     `Phone: ${input.phone}`,
     `Occupation: ${input.occupation}`,
     `Heard about it: ${input.heardAbout}`,
+    ...(input.invitedBy ? [`Invited by: ${input.invitedBy}`] : []),
     "",
     `All registrations: ${input.adminLink}`,
   ].join("\n");

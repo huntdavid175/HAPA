@@ -32,6 +32,7 @@ const EMPTY: Fields = {
   occupation: "",
   heardAbout: "",
   heardAboutOther: "",
+  invitedBy: "",
 };
 
 export type Registered = Fields & { phoneDisplay: string; alreadyRegistered: boolean };
@@ -111,6 +112,7 @@ export function RegistrationPass({
         lastName: fields.lastName.trim(),
         email: fields.email.trim(),
         occupation: fields.occupation.trim(),
+        invitedBy: fields.invitedBy.trim(),
         phoneDisplay: phone.ok ? phone.display : fields.phone,
         alreadyRegistered: result.alreadyRegistered,
       });
@@ -240,6 +242,19 @@ export function RegistrationPass({
               ) : null}
             </div>
 
+            <Line
+              name="invitedBy"
+              label="Invited by (optional)"
+              autoComplete="off"
+              autoCapitalize="words"
+              enterKeyHint="done"
+              placeholder="Name of the person who invited you"
+              maxLength={REGISTRATION_LIMITS.invitedBy}
+              value={fields.invitedBy}
+              error={errors.invitedBy}
+              onChange={update}
+            />
+
             {formError ? (
               <p role="alert" className="text-sm font-medium text-destructive">
                 {formError}
@@ -291,6 +306,9 @@ function FilledIn({ details }: { details: Registered }) {
           <span className="break-all">{details.email}</span>
         </Printed>
         <Printed label="Phone">{details.phoneDisplay}</Printed>
+        {details.invitedBy ? (
+          <Printed label="Invited by">{details.invitedBy}</Printed>
+        ) : null}
       </dl>
 
       {/* Only a new registration is emailed (app/register/actions.ts); a repeat was

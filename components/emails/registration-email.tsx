@@ -12,6 +12,8 @@ export type RegistrationEmailProps = {
   occupation: string;
   /** "Other: a colleague", when they wrote one. */
   heardAbout: string;
+  /** Who invited them, or null when they left it blank. */
+  invitedBy: string | null;
   adminLink: string;
 };
 
@@ -31,6 +33,7 @@ export function RegistrationEmail(props: RegistrationEmailProps) {
     ["Phone", props.phone],
     ["Occupation", props.occupation],
     ["Heard about it", props.heardAbout],
+    ...(props.invitedBy ? ([["Invited by", props.invitedBy]] as [string, React.ReactNode][]) : []),
   ];
 
   return (

@@ -33,6 +33,7 @@ const input = z.object({
   occupation: z.string(),
   heardAbout: z.string(),
   heardAboutOther: z.string(),
+  invitedBy: z.string(),
 });
 
 /**
@@ -76,6 +77,7 @@ export async function registerGuest(raw: unknown): Promise<RegisterResult> {
     occupation: fields.occupation.trim(),
     heard_about: fields.heardAbout,
     heard_about_other: other || null,
+    invited_by: fields.invitedBy.trim() || null,
   };
 
   const { data, error } = await createAdminClient()
@@ -106,6 +108,7 @@ type SavedRow = {
   occupation: string;
   heard_about: string;
   heard_about_other: string | null;
+  invited_by: string | null;
 };
 
 /**
@@ -183,6 +186,7 @@ async function notifyOrganiser(
     heardAbout: row.heard_about_other
       ? `${row.heard_about}: ${row.heard_about_other}`
       : row.heard_about,
+    invitedBy: row.invited_by,
     adminLink: `${clientEnv().NEXT_PUBLIC_SITE_URL}/admin/registrations?day=${day.number}`,
   });
 

@@ -25,7 +25,7 @@ export function registrationSearchFilter(query: string): string | null {
   const safe = query.replace(/[,()]/g, " ").trim();
   if (!safe) return null;
 
-  const parts = ["first_name", "last_name", "email", "phone", "occupation"].map(
+  const parts = ["first_name", "last_name", "email", "phone", "occupation", "invited_by"].map(
     (column) => `${column}.ilike.%${safe}%`,
   );
 

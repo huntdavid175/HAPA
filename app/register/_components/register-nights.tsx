@@ -48,25 +48,33 @@ export function RegisterNights({ initialDay }: { initialDay: RegistrationDay | n
               >
                 <span className="flex min-w-0 flex-1 flex-col gap-4 px-5 py-5">
                   <span>
-                    <span className="block text-sm font-semibold text-muted-foreground">
-                      Day {day.number}
-                      {day.subtitle ? ` · ${day.subtitle}` : ""}
-                    </span>
-                    <span className="mt-0.5 block text-[1.375rem] leading-tight font-extrabold tracking-[-0.02em] [font-stretch:105%]">
-                      {day.name}
+                    {day.subtitle ? (
+                      <span className="mb-0.5 block text-sm font-semibold text-muted-foreground">
+                        {day.subtitle}
+                      </span>
+                    ) : null}
+                    {/* "Day 1 – African Showcase": the day first, in its colour, so the
+                        three read as a running order. Large and bold, so each colour
+                        clears the 3:1 that large text needs on paper white. Two columns,
+                        so a long name wraps under itself, never back under the day. */}
+                    <span className="flex gap-x-[0.3em] text-[1.375rem] leading-tight font-extrabold tracking-[-0.02em] [font-stretch:105%]">
+                      <span className="shrink-0 whitespace-nowrap" style={{ color: "var(--day)" }}>
+                        Day {day.number} –
+                      </span>
+                      <span className="min-w-0">{day.name}</span>
                     </span>
                   </span>
 
                   {done ? (
                     <span
-                      className="inline-flex h-11 w-fit items-center gap-2 rounded-xl border-2 px-4 text-[0.95rem] font-bold"
+                      className="inline-flex h-11 w-fit self-center lg:self-start items-center gap-2 rounded-xl border-2 px-4 text-[0.95rem] font-bold"
                       style={{ borderColor: "var(--day)", color: "var(--day)" }}
                     >
                       <CheckIcon className="size-4" strokeWidth={3} />
                       Registered
                     </span>
                   ) : (
-                    <span className="inline-flex h-11 w-fit items-center gap-2 rounded-xl bg-foreground px-5 text-[0.95rem] font-bold text-background transition group-hover:opacity-90">
+                    <span className="inline-flex h-11 w-fit self-center lg:self-start items-center gap-2 rounded-xl bg-foreground px-5 text-[0.95rem] font-bold text-background transition group-hover:opacity-90">
                       Register
                       <ArrowRightIcon className="size-4 transition group-hover:translate-x-0.5" />
                     </span>

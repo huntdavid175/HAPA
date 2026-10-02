@@ -9,8 +9,6 @@ export type RegistrationDay = {
   slug: string;
   number: 1 | 2 | 3;
   name: string;
-  /** A second line under the name, when the night has one. */
-  subtitle: string | null;
   accentClass: string;
 };
 
@@ -19,21 +17,18 @@ export const REGISTRATION_DAYS: RegistrationDay[] = [
     slug: "day-1",
     number: 1,
     name: "African Showcase",
-    subtitle: null,
     accentClass: "reg-day-1",
   },
   {
     slug: "day-2",
     number: 2,
     name: "Creators Night",
-    subtitle: null,
     accentClass: "reg-day-2",
   },
   {
     slug: "day-3",
     number: 3,
     name: "The King of the Diaspora",
-    subtitle: "Kings Night",
     accentClass: "reg-day-3",
   },
 ];

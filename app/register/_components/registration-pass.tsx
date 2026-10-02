@@ -124,9 +124,6 @@ export function RegistrationPass({
       {/* ---- The stub: which night ------------------------------------------------ */}
       <header className="theme-paper reg-cut-bottom flex rounded-t-[1.75rem] bg-card text-card-foreground">
         <div className="min-w-0 flex-1 px-6 pt-7 pb-7">
-          {day.subtitle ? (
-            <p className="mb-2 text-sm font-semibold text-muted-foreground">{day.subtitle}</p>
-          ) : null}
           <h2
             id={registrationTitleId(day)}
             className="text-[2rem] leading-[0.95] font-extrabold tracking-[-0.03em] text-balance break-words [font-stretch:112%] min-[400px]:text-[2.375rem]"

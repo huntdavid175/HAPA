@@ -48,11 +48,6 @@ export function RegisterNights({ initialDay }: { initialDay: RegistrationDay | n
               >
                 <span className="flex min-w-0 flex-1 flex-col gap-4 px-5 py-5">
                   <span>
-                    {day.subtitle ? (
-                      <span className="mb-0.5 block text-sm font-semibold text-muted-foreground">
-                        {day.subtitle}
-                      </span>
-                    ) : null}
                     {/* "Day 1 – African Showcase": the day first, in its colour, so the
                         three read as a running order. Large and bold, so each colour
                         clears the 3:1 that large text needs on paper white. Two columns,

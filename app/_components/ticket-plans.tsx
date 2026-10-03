@@ -29,7 +29,7 @@ function unavailableLabel(reason: string | null) {
  * buyer who wants two of something never has to open the drawer to say so.
  */
 export function TicketPlans() {
-  const { tiers, quantities, bumpQty, addTier } = useCart();
+  const { tiers, quantities, bumpQty, addTier, openRequest } = useCart();
 
   return (
     <ul className="grid items-stretch gap-6 md:auto-rows-fr md:gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -40,6 +40,7 @@ export function TicketPlans() {
           qty={quantities[tier.id] ?? 0}
           onAdd={() => addTier(tier.id)}
           onBump={(delta) => bumpQty(tier.id, delta)}
+          onRequest={() => openRequest(tier.id)}
         />
       ))}
     </ul>
@@ -51,11 +52,13 @@ function PlanCard({
   qty,
   onAdd,
   onBump,
+  onRequest,
 }: {
   tier: CartTier;
   qty: number;
   onAdd: () => void;
   onBump: (delta: number) => void;
+  onRequest: () => void;
 }) {
   const unavailable = unavailableLabel(tier.unavailableReason);
   // Booked through the organiser rather than sold out: still on offer, so it keeps its
@@ -137,15 +140,28 @@ function PlanCard({
           ) : null}
         </div>
 
-        {tier.unavailableReason === "book_direct" && tier.bookingHref ? (
-          // Not sold online (Moolre takes cedis only): the bookings contacts under the
-          // cards. Same h-13 as every other stub, so the tears stay level.
-          <a
-            href={tier.bookingHref}
-            className="flex h-13 items-center justify-center border border-cta px-6 text-center text-[0.95rem] font-bold tracking-[-0.01em] text-foreground transition hover:bg-background focus-visible:ring-2 focus-visible:ring-cta focus-visible:ring-offset-4 focus-visible:ring-offset-background focus-visible:outline-none"
-          >
-            {unavailable}
-          </a>
+        {bookDirect ? (
+          // Not sold online (Moolre takes cedis only): a request to the organiser, in its
+          // own drawer. Outlined rather than filled, so it never reads as "Get ticket".
+          // Without JavaScript, the bookings contacts under the cards. Same h-13 as every
+          // other stub, so the tears stay level.
+          <>
+            <button
+              type="button"
+              onClick={onRequest}
+              className="js-only h-13 w-full border-2 border-cta px-6 text-[0.95rem] font-bold tracking-[-0.01em] text-foreground transition hover:bg-cta hover:text-cta-foreground focus-visible:ring-2 focus-visible:ring-cta focus-visible:ring-offset-4 focus-visible:ring-offset-background focus-visible:outline-none"
+            >
+              Request to book
+            </button>
+            {tier.bookingHref ? (
+              <a
+                href={tier.bookingHref}
+                className="nojs-only hidden h-13 items-center justify-center border-2 border-cta px-6 text-[0.95rem] font-bold text-foreground"
+              >
+                {unavailable}
+              </a>
+            ) : null}
+          </>
         ) : unavailable ? (
           <p className="flex h-13 items-center justify-center border border-border px-6 text-center text-[0.95rem] font-semibold text-muted-foreground">
             {unavailable}

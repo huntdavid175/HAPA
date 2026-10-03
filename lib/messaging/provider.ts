@@ -26,6 +26,11 @@ export type SendRequest = {
   /** Email only: the React Email template. `body` is always sent too, as the text part. */
   react?: ReactElement;
   /**
+   * Email only: where a reply goes, instead of EMAIL_REPLY_TO. A ticket request sets the
+   * requester's address, so the organiser answers them by pressing Reply.
+   */
+  replyTo?: string;
+  /**
    * Stable per outbox row, so a retry after a timeout cannot deliver twice. Providers
    * that support it pass it on; the rest ignore it.
    */

@@ -50,7 +50,9 @@ export class ResendProvider implements MessagingProvider {
           subject: request.subject,
           text: request.body,
           ...(request.react ? { react: request.react } : {}),
-          ...(this.replyTo ? { replyTo: this.replyTo } : {}),
+          ...(request.replyTo || this.replyTo
+            ? { replyTo: request.replyTo ?? this.replyTo }
+            : {}),
         },
         request.idempotencyKey ? { idempotencyKey: request.idempotencyKey } : undefined,
       );

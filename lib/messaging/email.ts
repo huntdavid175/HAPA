@@ -14,6 +14,10 @@ import {
   type RegistrationEmailProps,
 } from "@/components/emails/registration-email";
 import { TicketEmail, ticketAction, ticketIntro } from "@/components/emails/ticket-email";
+import {
+  TicketRequestEmail,
+  type TicketRequestEmailProps,
+} from "@/components/emails/ticket-request-email";
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { composeTicketMessage } from "./ticket-message";
 
@@ -124,4 +128,25 @@ export function composeRegistrationEmail(input: RegistrationEmailProps): EmailCo
   ].join("\n");
 
   return { subject, text, react: RegistrationEmail(input) };
+}
+
+/** The organiser's note that someone wants a tier booked through them. */
+export function composeTicketRequestEmail(input: TicketRequestEmailProps): EmailContent {
+  // Inbox first: what is wanted and by whom, so it stands apart from the sales emails.
+  const subject = `Ticket request: ${input.quantity} × ${input.tierName} · ${input.organisation ?? input.name}`;
+
+  const text = [
+    `${input.organisation ? `${input.name} from ${input.organisation}` : input.name} would like to book ${input.quantity} × ${input.tierName}. No payment has been taken.`,
+    "",
+    `Price: ${input.priceEach}`,
+    `Email: ${input.email}`,
+    `Phone: ${input.phone}`,
+    `Heard about it: ${input.heardAbout}`,
+    ...(input.message ? ["", "Message:", input.message] : []),
+    "",
+    "Reply to this email to answer them directly.",
+    `Ticket requests: ${input.adminLink}`,
+  ].join("\n");
+
+  return { subject, text, react: TicketRequestEmail(input) };
 }

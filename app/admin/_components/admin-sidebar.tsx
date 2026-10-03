@@ -7,6 +7,7 @@ import {
   AlertTriangleIcon,
   CalendarDaysIcon,
   ClipboardListIcon,
+  InboxIcon,
   LayoutDashboardIcon,
   ScanLineIcon,
   Share2Icon,
@@ -51,6 +52,7 @@ const TONIGHT: NavItem[] = [
   { href: "/admin", label: "Overview", icon: LayoutDashboardIcon, exact: true },
   { href: "/admin/buyers", label: "Buyers", icon: UsersIcon },
   { href: "/admin/registrations", label: "Registrations", icon: ClipboardListIcon },
+  { href: "/admin/requests", label: "Ticket requests", icon: InboxIcon },
   { href: "/admin/failures", label: "Failed messages", icon: AlertTriangleIcon },
   { href: "/scan", label: "Scan tickets", icon: ScanLineIcon },
 ];
@@ -65,10 +67,13 @@ const SETUP: NavItem[] = [
 export function AdminSidebar({
   email,
   failureCount,
+  requestCount,
   signOutAction,
 }: {
   email: string;
   failureCount: number;
+  /** Ticket requests not yet marked handled. */
+  requestCount: number;
   signOutAction: () => void;
 }) {
   const pathname = usePathname();
@@ -135,6 +140,9 @@ export function AdminSidebar({
                   {/* Only worth a badge when there is something to act on. */}
                   {item.href === "/admin/failures" && failureCount > 0 ? (
                     <SidebarMenuBadge>{failureCount}</SidebarMenuBadge>
+                  ) : null}
+                  {item.href === "/admin/requests" && requestCount > 0 ? (
+                    <SidebarMenuBadge>{requestCount}</SidebarMenuBadge>
                   ) : null}
                 </SidebarMenuItem>
               ))}

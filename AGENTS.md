@@ -26,9 +26,16 @@ Read `plan.md` for where the build is.
   Paystack was removed; `orders.paystack_reference` / `.paystack_channel` keep their
   names (like `_pesewas`) and now hold our Moolre `externalref` and `"moolre"`.
 - **Only cedis are sold online.** Moolre settles GHS (and NGN), not USD. A USD tier is
-  shown with its price and **"Contact to book"**, linking to the bookings section
-  (`#bookings`, `events.booking_info`); `startCheckout` refuses a non-GHS tier before
-  reserving anything (`ONLINE_CURRENCY` in `lib/currency.ts`). The cart still never mixes
+  "book_direct": its card says **"Request to book"** and opens the request drawer
+  (`request-drawer.tsx`) instead of the cart; `startCheckout` refuses a non-GHS tier
+  before reserving anything (`ONLINE_CURRENCY` in `lib/currency.ts`). Without JS the card
+  falls back to a link to the bookings section (`#bookings`, `.nojs-only`).
+- **Ticket requests** (`ticket_requests`, `app/requests/actions.ts`): saved with the
+  secret key (`anon` has no grant) and emailed to `REQUEST_NOTIFY_EMAIL`, falling back to
+  `REGISTRATION_NOTIFY_EMAIL`, with the requester as **Reply-To** so the organiser answers
+  by pressing Reply. The action only accepts a tier that is really book_direct (active,
+  published, non-GHS). Admin: `/admin/requests`, New/Handled tabs, a sidebar badge for
+  new ones; "Mark handled" is reversible, so it does not ask first. The cart still never mixes
   currencies, and `reserve_tickets` still refuses a mixed order. Never sum amounts across
   currencies — `formatTotals` shows one total per currency.
 - **Moolre callbacks are not signed.** Anyone can post to `/api/webhooks/moolre`, so the

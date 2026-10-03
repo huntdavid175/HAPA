@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/lib/auth";
 import { signOut } from "@/app/sign-in/actions";
 import { getFailedDeliveries } from "@/lib/admin/orders";
+import { createClient } from "@/lib/supabase/server";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AdminHeader } from "./_components/admin-header";
 import { AdminSidebar } from "./_components/admin-sidebar";
@@ -19,11 +20,19 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   // an organiser go looking for it.
   const failures = await getFailedDeliveries(50);
 
+  // Requests waiting for the organiser, for the count beside "Ticket requests" — each is
+  // someone who wants to buy and has not heard back.
+  const { count: newRequests } = await (await createClient())
+    .from("ticket_requests")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "new");
+
   return (
     <SidebarProvider>
       <AdminSidebar
         email={viewer.email ?? "Signed in"}
         failureCount={failures.length}
+        requestCount={newRequests ?? 0}
         signOutAction={signOut}
       />
 

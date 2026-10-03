@@ -10,6 +10,7 @@ import { EventCrest } from "./event-crest";
 import { CartProvider, type CartTier } from "./cart";
 import { BuyRail, BuyBar, TicketPlansSection } from "./buy-panel";
 import { TicketDrawer } from "./ticket-drawer";
+import { RequestDrawer } from "./request-drawer";
 
 /**
  * The buyer's first screen — usually reached by scanning a QR on a poster or tapping a
@@ -67,7 +68,7 @@ export function EventView({ event }: { event: EventWithTiers }) {
         {/* A trigger that cannot open anything is worse than no trigger, so the sheet's
           buttons are hidden without JavaScript and the tiers render inline instead. */}
         <noscript>
-          <style>{`.js-only{display:none!important}.noscript-tiers{display:block!important}`}</style>
+          <style>{`.js-only{display:none!important}.noscript-tiers{display:block!important}.nojs-only{display:flex!important}`}</style>
         </noscript>
 
         <div className="mx-auto w-full max-w-5xl">
@@ -158,6 +159,8 @@ export function EventView({ event }: { event: EventWithTiers }) {
           checkoutPaused={checkoutPaused()}
           unavailableNotice={unavailableNotice}
         />
+
+        <RequestDrawer />
 
       </main>
     </CartProvider>

@@ -55,6 +55,13 @@ type CartValue = {
    */
   plansInView: boolean;
   setPlansInView: (inView: boolean) => void;
+  /**
+   * The tier whose request form is open: a tier booked through the organiser
+   * ("book_direct") opens a request instead of the cart. Null when closed.
+   */
+  requestTier: CartTier | null;
+  openRequest: (tierId: string) => void;
+  closeRequest: () => void;
 };
 
 const CartContext = createContext<CartValue | null>(null);
@@ -84,6 +91,9 @@ export function CartProvider({
   const [switchToId, setSwitchToId] = useState<string | null>(null);
   const [open, setOpenState] = useState(false);
   const [plansInView, setPlansInView] = useState(false);
+  const [requestTierId, setRequestTierId] = useState<string | null>(null);
+  const openRequest = useCallback((tierId: string) => setRequestTierId(tierId), []);
+  const closeRequest = useCallback(() => setRequestTierId(null), []);
 
   /**
    * Derives from previous state rather than a rendered value: two fast taps on "+" that
@@ -170,6 +180,9 @@ export function CartProvider({
       setOpen,
       plansInView,
       setPlansInView,
+      requestTier: tiers.find((t) => t.id === requestTierId) ?? null,
+      openRequest,
+      closeRequest,
     };
   }, [
     tiers,
@@ -183,6 +196,9 @@ export function CartProvider({
     open,
     setOpen,
     plansInView,
+    requestTierId,
+    openRequest,
+    closeRequest,
   ]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

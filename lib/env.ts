@@ -78,6 +78,9 @@ const serverSchema = z
     EMAIL_REPLY_TO: z.email().optional(),
     // Told by email of every door registration. Unset, nobody is.
     REGISTRATION_NOTIFY_EMAIL: z.email().optional(),
+    // Told by email of every ticket request (tiers booked through the organiser). Falls
+    // back to REGISTRATION_NOTIFY_EMAIL, so one organiser address covers both.
+    REQUEST_NOTIFY_EMAIL: z.email().optional(),
 
     SENTRY_DSN: z.url().optional(),
 

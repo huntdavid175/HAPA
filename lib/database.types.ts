@@ -398,6 +398,75 @@ export type Database = {
         }
         Relationships: []
       }
+      ticket_requests: {
+        Row: {
+          buyer_email: string
+          buyer_name: string
+          buyer_phone: string
+          created_at: string
+          event_id: string
+          handled_at: string | null
+          heard_about: string
+          heard_about_other: string | null
+          id: string
+          message: string | null
+          organisation: string | null
+          quantity: number
+          status: string
+          tier_id: string | null
+          tier_name: string
+        }
+        Insert: {
+          buyer_email: string
+          buyer_name: string
+          buyer_phone: string
+          created_at?: string
+          event_id: string
+          handled_at?: string | null
+          heard_about: string
+          heard_about_other?: string | null
+          id?: string
+          message?: string | null
+          organisation?: string | null
+          quantity: number
+          status?: string
+          tier_id?: string | null
+          tier_name: string
+        }
+        Update: {
+          buyer_email?: string
+          buyer_name?: string
+          buyer_phone?: string
+          created_at?: string
+          event_id?: string
+          handled_at?: string | null
+          heard_about?: string
+          heard_about_other?: string | null
+          id?: string
+          message?: string | null
+          organisation?: string | null
+          quantity?: number
+          status?: string
+          tier_id?: string | null
+          tier_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_requests_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "ticket_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ticket_tiers: {
         Row: {
           active: boolean

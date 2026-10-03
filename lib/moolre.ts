@@ -25,6 +25,13 @@ import { clientEnv, requireMoolre } from "@/lib/env";
 export type PaymentLink = { url: string; reference: string };
 
 export type PaymentStatus = {
+  /**
+   * Whether Moolre actually answered about the payment — `status: 1`, found or not (an
+   * unknown reference is `SS07`, `txstatus: 3`). False means the lookup itself failed:
+   * `IE01 INTERNAL ERROR` throughout the 3 Oct 2026 outage, when even a reference Moolre
+   * had never seen got it. Not paid is only known when this is true.
+   */
+  answered: boolean;
   /** Only `true` is money in hand. Moolre documents 1 as successful and nothing else. */
   paid: boolean;
   /** Moolre's own number, as sent: 1 successful; any other value is not paid (yet). */
@@ -130,6 +137,7 @@ export async function getPaymentStatus(reference: string): Promise<PaymentStatus
   const txstatus = data?.txstatus === undefined ? null : Number(data.txstatus);
 
   return {
+    answered: payload.status === 1,
     paid: payload.status === 1 && txstatus === 1,
     txstatus,
     amountPesewas: data?.amount === undefined ? null : amountToPesewas(data.amount),

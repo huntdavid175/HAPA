@@ -2,7 +2,7 @@ import { type NextRequest } from "next/server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPaymentStatus } from "@/lib/moolre";
-import { queueTicketDelivery } from "@/lib/messaging/ticket-message";
+import { settlePaidOrder } from "@/lib/payments/settle";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,10 +23,15 @@ const PROVIDER = "moolre";
  *   2. record the callback; one already handled successfully stops here
  *   3. ask Moolre's status endpoint, with our key, what actually happened — and check the
  *      amount against our order
- *   4. issue tickets and queue delivery (both idempotent in the database)
+ *   4. issue tickets and queue delivery (`settlePaidOrder`, shared with reconciliation)
  *   5. return 200 quickly — sending is the worker's job
  *
  * A forged callback therefore costs one status lookup and grants nothing.
+ *
+ * When Moolre's status lookup itself fails (as through their 3 Oct 2026 outage), the
+ * answer is a 500, not "not paid": that asks Moolre to send the callback again, instead
+ * of telling it the notification landed. Reconciliation (/api/cron/reconcile) catches the
+ * payment regardless — including when Moolre never calls at all.
  */
 export async function POST(request: NextRequest) {
   const raw = await request.text();
@@ -96,6 +101,12 @@ export async function POST(request: NextRequest) {
     // 3. Never trust the callback — ask Moolre directly.
     const verified = await getPaymentStatus(reference);
 
+    if (!verified.answered) {
+      const reason = `Moolre status lookup failed: ${verified.code ?? "no code"} ${verified.message ?? ""}`.trim();
+      await markProcessed(db, providerEventId, reason);
+      return new Response(reason, { status: 500 });
+    }
+
     if (!verified.paid) {
       await markProcessed(
         db,
@@ -105,37 +116,15 @@ export async function POST(request: NextRequest) {
       return new Response("Not a successful payment", { status: 200 });
     }
 
-    // An amount mismatch means the reference was reused or tampered with. Record it and
-    // grant nothing. Moolre settles cedis only, which checkout guarantees for the order.
-    if (verified.amountPesewas !== order.total_pesewas || order.currency !== "GHS") {
-      await db
-        .from("orders")
-        .update({
-          needs_refund: true,
-          refund_reason: `Paid ${verified.amountPesewas ?? "an unknown amount of"} pesewas at Moolre but the order total is ${order.total_pesewas} ${order.currency}`,
-        })
-        .eq("id", order.id);
+    // 4. Check the amount, issue tickets, queue delivery — all idempotent.
+    const outcome = await settlePaidOrder(db, order, verified);
+    if (outcome.kind === "mismatch") {
       await markProcessed(db, providerEventId, "Amount mismatch");
       return new Response("Amount mismatch", { status: 200 });
     }
 
-    // 4. Issue tickets. Idempotent in the database, so even if this runs twice the buyer
-    //    gets one set; delivery is idempotent per order too.
-    const { data: issued, error: issueError } = await db.rpc("issue_tickets_for_order", {
-      p_order_id: order.id,
-      p_channel: PROVIDER,
-    });
-    if (issueError) throw issueError;
-
-    await queueTicketDelivery(db, order.id);
     await markProcessed(db, providerEventId);
-
-    const result = issued?.[0];
-    return Response.json({
-      ok: true,
-      issued: result?.issued ?? 0,
-      shortfall: result?.shortfall ?? 0,
-    });
+    return Response.json({ ok: true, issued: outcome.issued, shortfall: outcome.shortfall });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await markProcessed(db, providerEventId, message);

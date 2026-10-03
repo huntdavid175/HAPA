@@ -36,7 +36,17 @@ Read `plan.md` for where the build is.
   thing that grants tickets, and only for `txstatus: 1` with the order's exact amount.
   Moolre documents no other `txstatus` value, so anything else is "not paid yet", never
   "failed": the hold lapses by itself. Do not "simplify" the status call away.
-- **Only the Moolre webhook issues tickets and queues their delivery.** The buyer's
+- **Moolre can take a payment and never call back** — it did on 3 Oct 2026, through an
+  outage. Reconciliation (`/api/cron/reconcile`, Supabase Cron `reconcile-payments` every
+  2 minutes, migration `20261003090000`) asks Moolre about unsettled orders, 2 min–48 h
+  old with backoff (`payment_reconcile_candidates`, `orders.payment_checked_at`), and
+  settles paid ones. Webhook and reconciliation both go through `settlePaidOrder`
+  (`lib/payments/settle.ts`) — keep it the one place a paid order is granted. When
+  Moolre's status lookup itself fails (`answered: false`, e.g. `IE01`), the webhook
+  answers 500 so Moolre retries; "not paid" is only a real `status: 1` answer.
+- Do not run reconciliation from a dev machine: it points at the sandbox, which has never
+  seen a live payment, so it stamps live orders "checked, not paid" and delays them.
+- **Only the Moolre webhook and reconciliation issue tickets and queue their delivery.** The buyer's
   return to `/order/[reference]` checks status for UX: mobile money often confirms after
   the buyer has closed the tab. (It also calls `issue_tickets_for_order`, which is
   idempotent, but it queues no message — only the webhook does.) A callback that found

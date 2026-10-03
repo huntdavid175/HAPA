@@ -268,6 +268,7 @@ export type Database = {
           ip_hash: string | null
           needs_refund: boolean
           paid_at: string | null
+          payment_checked_at: string | null
           paystack_channel: string | null
           paystack_reference: string
           refund_reason: string | null
@@ -287,6 +288,7 @@ export type Database = {
           ip_hash?: string | null
           needs_refund?: boolean
           paid_at?: string | null
+          payment_checked_at?: string | null
           paystack_channel?: string | null
           paystack_reference: string
           refund_reason?: string | null
@@ -306,6 +308,7 @@ export type Database = {
           ip_hash?: string | null
           needs_refund?: boolean
           paid_at?: string | null
+          payment_checked_at?: string | null
           paystack_channel?: string | null
           paystack_reference?: string
           refund_reason?: string | null
@@ -629,6 +632,15 @@ export type Database = {
           ticket_code: string
           ticket_id: string
           tier_name: string
+        }[]
+      }
+      payment_reconcile_candidates: {
+        Args: { p_limit?: number }
+        Returns: {
+          currency: string
+          id: string
+          reference: string
+          total_pesewas: number
         }[]
       }
       refresh_broadcast_counts: {

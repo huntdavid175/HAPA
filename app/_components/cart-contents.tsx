@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { MinusIcon, PlusIcon, TicketIcon } from "lucide-react";
 
 import { startCheckout, type CheckoutState } from "@/app/checkout/actions";
 import { formatPesewas } from "@/lib/format";
 import type { Currency } from "@/lib/currency";
+import { HEARD_ABOUT_OPTIONS } from "@/lib/registration-days";
 import { useCart, MAX_PER_TIER } from "./cart";
 
 /** How the switch prompt names a currency — the way a buyer says it, not the ISO code. */
@@ -225,6 +226,7 @@ export function CartContents({
             autoComplete="tel"
             placeholder="024 123 4567"
           />
+          <HeardAboutField />
 
           {state.error ? (
             <p role="alert" className="text-sm font-medium text-destructive">
@@ -246,6 +248,57 @@ export function CartContents({
         </div>
       )}
     </form>
+  );
+}
+
+/**
+ * "How did you hear about the event?" — the same list door registration asks, so the two
+ * sets of answers count side by side (orders.heard_about, CHECK-constrained). The phone's
+ * own picker; "Other" adds an optional line for where.
+ */
+function HeardAboutField() {
+  const [choice, setChoice] = useState("");
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div>
+        <label htmlFor="heardAbout" className="block text-[0.8125rem] font-medium">
+          How did you hear about the event?
+        </label>
+        <select
+          id="heardAbout"
+          name="heardAbout"
+          required
+          value={choice}
+          onChange={(e) => setChoice(e.target.value)}
+          className={`mt-1.5 w-full appearance-none border border-border bg-card bg-[length:1rem] bg-[right_0.75rem_center] bg-no-repeat px-3 py-3 pr-10 text-base focus-visible:border-cta focus-visible:outline-none ${
+            choice ? "" : "text-muted-foreground"
+          }`}
+          style={{
+            backgroundImage:
+              "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a59cb3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")",
+          }}
+        >
+          <option value="" disabled>
+            Choose one
+          </option>
+          {HEARD_ABOUT_OPTIONS.map((option) => (
+            <option key={option} value={option} className="text-foreground">
+              {option}
+            </option>
+          ))}
+        </select>
+      </div>
+      {choice === "Other" ? (
+        <Field
+          id="heardAboutOther"
+          label="Where did you hear about it? (optional)"
+          required={false}
+          maxLength={200}
+          autoCapitalize="sentences"
+        />
+      ) : null}
+    </div>
   );
 }
 

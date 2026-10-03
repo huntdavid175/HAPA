@@ -310,6 +310,12 @@ export default async function OrderDetailPage({ params }: PageProps<"/admin/orde
                     </dd>
                   </div>
                 ) : null}
+                {order.heardAbout ? (
+                  <div className="flex justify-between gap-4">
+                    <dt>Heard about it</dt>
+                    <dd className="text-right">{order.heardAbout}</dd>
+                  </div>
+                ) : null}
                 <div className="flex items-center justify-between gap-4">
                   <dt>Payment ref</dt>
                   <dd className="truncate font-mono">{order.reference}</dd>

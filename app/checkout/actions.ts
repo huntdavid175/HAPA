@@ -10,6 +10,7 @@ import { normalizeGhanaPhone } from "@/lib/phone";
 import { buildReference, createPaymentLink } from "@/lib/moolre";
 import { checkoutEnabled } from "@/lib/env";
 import { ONLINE_CURRENCY } from "@/lib/currency";
+import { HEARD_ABOUT_OPTIONS } from "@/lib/registration-days";
 
 export type CheckoutState = { error: string | null };
 
@@ -21,6 +22,9 @@ const schema = z.object({
   items: z
     .array(z.object({ tier_id: z.uuid(), quantity: z.number().int().min(1).max(20) }))
     .min(1, "Choose at least one ticket"),
+  // The same list door registration asks, mirrored by a CHECK on orders.heard_about.
+  heardAbout: z.enum(HEARD_ABOUT_OPTIONS, "Tell us how you heard about the event"),
+  heardAboutOther: z.string().trim().max(200, "Keep it shorter, a few words is plenty"),
 });
 
 /**
@@ -63,6 +67,8 @@ export async function startCheckout(
     phone: formData.get("phone"),
     email: formData.get("email"),
     items: parsedItems,
+    heardAbout: formData.get("heardAbout") ?? "",
+    heardAboutOther: formData.get("heardAboutOther") ?? "",
   });
 
   if (!parsed.success) {
@@ -121,6 +127,15 @@ export async function startCheckout(
 
   const order = reserved?.[0];
   if (!order) return { error: "Could not hold those tickets. Please try again." };
+
+  // Written here rather than through reserve_tickets, so its signature — and the
+  // overselling logic behind it — stay untouched. A failure only loses the answer,
+  // never the sale, so it does not stop the checkout.
+  const other = parsed.data.heardAbout === "Other" ? parsed.data.heardAboutOther : "";
+  await db
+    .from("orders")
+    .update({ heard_about: parsed.data.heardAbout, heard_about_other: other || null })
+    .eq("id", order.order_id);
 
   // reserve_tickets settled the currency from the tiers; the check above means it is
   // cedis, but a dollar order reaching Moolre would be charged in the wrong unit.

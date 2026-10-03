@@ -263,6 +263,8 @@ export type Database = {
           created_at: string
           currency: string
           event_id: string
+          heard_about: string | null
+          heard_about_other: string | null
           hold_expires_at: string
           id: string
           ip_hash: string | null
@@ -283,6 +285,8 @@ export type Database = {
           created_at?: string
           currency?: string
           event_id: string
+          heard_about?: string | null
+          heard_about_other?: string | null
           hold_expires_at: string
           id?: string
           ip_hash?: string | null
@@ -303,6 +307,8 @@ export type Database = {
           created_at?: string
           currency?: string
           event_id?: string
+          heard_about?: string | null
+          heard_about_other?: string | null
           hold_expires_at?: string
           id?: string
           ip_hash?: string | null

@@ -229,8 +229,9 @@ Pricing cards at the foot of the page, a drawer for the cart, and a rail (deskto
   has one spelling. It shows on the stamped pass, in the organiser's email, the admin list
   (searchable) and the CSV; the guest's confirmation email leaves it out.
 - Validation is `lib/registration.ts`, run by the form and again by the action
-  (`app/register/actions.ts`). `HEARD_ABOUT_OPTIONS` is mirrored by a CHECK constraint —
-  change both together.
+  (`app/register/actions.ts`). `HEARD_ABOUT_OPTIONS` is mirrored by CHECK constraints on
+  `registrations.heard_about` **and** `orders.heard_about` (the ticket checkout asks the
+  same question) — change all three together.
 - `anon` has no grant on `registrations`; the action writes with the secret key, and only
   admins can read. A repeat email for the same night hits the unique index and is shown as
   "already on the list", not as an error.

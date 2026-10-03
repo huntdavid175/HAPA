@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
   let req = supabase
     .from("orders")
     .select(
-      "buyer_name, buyer_phone, buyer_email, total_pesewas, currency, status, paystack_channel, created_at, tickets(id, status)",
+      "buyer_name, buyer_phone, buyer_email, total_pesewas, currency, status, paystack_channel, heard_about, heard_about_other, created_at, tickets(id, status)",
     )
     .order("created_at", { ascending: false });
 
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
   const header = [
     // `amount` is in `currency`. It was `amount_ghs` until tiers could be priced in
     // dollars; a single amount column with no currency would sum cedis and dollars.
-    "name", "phone", "email", "tickets", "checked_in", "amount", "currency", "status", "channel", "purchased_at",
+    "name", "phone", "email", "tickets", "checked_in", "amount", "currency", "status", "channel", "heard_about", "heard_about_other", "purchased_at",
   ];
 
   const rows = (data ?? []).map((o) => {
@@ -57,6 +57,8 @@ export async function GET(request: NextRequest) {
       o.currency,
       o.status,
       o.paystack_channel ?? "",
+      o.heard_about ?? "",
+      o.heard_about_other ?? "",
       o.created_at,
     ];
   });

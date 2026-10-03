@@ -41,6 +41,8 @@ export type OrderDetail = {
   refundReason: string | null;
   createdAt: string;
   paidAt: string | null;
+  /** "Instagram", "Other: a colleague" — or null on orders from before it was asked. */
+  heardAbout: string | null;
   items: { tierName: string; quantity: number; unitPricePesewas: number }[];
   tickets: OrderTicket[];
   deliveries: OrderDelivery[];
@@ -63,7 +65,7 @@ export async function getOrderDetail(orderId: string): Promise<OrderDetail | nul
     .select(
       `id, paystack_reference, status, buyer_name, buyer_phone, buyer_email,
        total_pesewas, currency, paystack_channel, needs_refund, refund_reason,
-       created_at, paid_at,
+       created_at, paid_at, heard_about, heard_about_other,
        order_items(quantity, unit_price_pesewas, ticket_tiers(name))`,
     )
     .eq("id", orderId)
@@ -105,6 +107,10 @@ export async function getOrderDetail(orderId: string): Promise<OrderDetail | nul
     refundReason: order.refund_reason,
     createdAt: order.created_at,
     paidAt: order.paid_at,
+    heardAbout:
+      order.heard_about === "Other" && order.heard_about_other
+        ? `Other: ${order.heard_about_other}`
+        : order.heard_about,
     items: items.map((i) => ({
       tierName: i.ticket_tiers?.name ?? "Unknown tier",
       quantity: i.quantity,

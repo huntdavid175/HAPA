@@ -46,9 +46,11 @@ const serverSchema = z
       .refine((v) => !v.endsWith("/"), "must not have a trailing slash")
       .optional(),
     MOOLRE_API_USER: z.string().min(1).optional(),
-    // The *public* API key. Moolre's payment-link and status endpoints authenticate with
-    // it; it still stays server-side — nothing here is sent to the browser.
-    MOOLRE_API_PUBKEY: z.string().min(1).optional(),
+    // The account's private API key, sent as `X-API-KEY`. Moolre's docs show these
+    // endpoints with `X-API-PUBKEY`, but that header expects a separate signed token; the
+    // private key works on both the link and the status endpoints (sandbox, 2 Oct 2026).
+    // Server-side only.
+    MOOLRE_API_KEY: z.string().min(1).optional(),
     MOOLRE_ACCOUNT_NUMBER: z.string().min(1).optional(),
     // The business email Moolre's payment link asks for. Not the buyer's.
     MOOLRE_MERCHANT_EMAIL: z.email().optional(),
@@ -57,9 +59,9 @@ const serverSchema = z
     CRON_SECRET: z.string().min(32, "use at least 32 chars of randomness"),
 
     MESSAGING_PROVIDER: z.enum(["stub", "moolre"]).default("stub"),
-    // SMS/WhatsApp through Moolre use their own VAS key and sender ID, on top of the
-    // MOOLRE_API_URL, MOOLRE_API_USER and MOOLRE_ACCOUNT_NUMBER above.
-    MOOLRE_API_KEY: z.string().optional(),
+    // SMS/WhatsApp through Moolre use their own VAS key (`X-API-VASKEY`) and sender ID, on
+    // top of the MOOLRE_API_URL, MOOLRE_API_USER and MOOLRE_ACCOUNT_NUMBER above.
+    MOOLRE_VAS_KEY: z.string().optional(),
     MOOLRE_SENDER_ID: z.string().optional(),
 
     // Email is routed separately from SMS/WhatsApp, so tickets can go out by email while
@@ -89,14 +91,14 @@ const serverSchema = z
       Boolean(
         env.MOOLRE_API_URL &&
           env.MOOLRE_API_USER &&
-          env.MOOLRE_API_KEY &&
+          env.MOOLRE_VAS_KEY &&
           env.MOOLRE_ACCOUNT_NUMBER &&
           env.MOOLRE_SENDER_ID,
       ),
     {
       error:
         'MESSAGING_PROVIDER="moolre" requires MOOLRE_API_URL, MOOLRE_API_USER, ' +
-        "MOOLRE_API_KEY, MOOLRE_ACCOUNT_NUMBER and MOOLRE_SENDER_ID",
+        "MOOLRE_VAS_KEY, MOOLRE_ACCOUNT_NUMBER and MOOLRE_SENDER_ID",
     },
   )
   .refine(
@@ -162,7 +164,7 @@ export function assertEnv(): void {
 export type MoolreConfig = {
   apiUrl: string;
   user: string;
-  pubKey: string;
+  apiKey: string;
   accountNumber: string;
   merchantEmail: string;
 };
@@ -172,16 +174,27 @@ function moolreConfig(): MoolreConfig | null {
   if (
     !env.MOOLRE_API_URL ||
     !env.MOOLRE_API_USER ||
-    !env.MOOLRE_API_PUBKEY ||
+    !env.MOOLRE_API_KEY ||
     !env.MOOLRE_ACCOUNT_NUMBER ||
     !env.MOOLRE_MERCHANT_EMAIL
   ) {
     return null;
   }
+  // The production deployment never takes sandbox payments. A sandbox "payment" is a
+  // test code and a "Success" button, and the status endpoint answers paid — so sandbox
+  // settings copied into Vercel production would hand out real tickets for nothing.
+  // Treated as unconfigured instead: no Pay button, and the error says why.
+  if (process.env.VERCEL_ENV === "production" && env.MOOLRE_API_URL.includes("sandbox")) {
+    console.error(
+      "MOOLRE_API_URL points at the Moolre sandbox on the production deployment — " +
+        "payments are off. Set it to https://api.moolre.com with live credentials.",
+    );
+    return null;
+  }
   return {
     apiUrl: env.MOOLRE_API_URL,
     user: env.MOOLRE_API_USER,
-    pubKey: env.MOOLRE_API_PUBKEY,
+    apiKey: env.MOOLRE_API_KEY,
     accountNumber: env.MOOLRE_ACCOUNT_NUMBER,
     merchantEmail: env.MOOLRE_MERCHANT_EMAIL,
   };
@@ -200,7 +213,7 @@ export function paymentsEnabled(): boolean {
  * Only new checkouts stop: the webhook and the order page still use `paymentsEnabled`,
  * so an order already at Moolre settles and issues its tickets.
  */
-const CHECKOUT_PAUSED = true;
+const CHECKOUT_PAUSED = false;
 
 export function checkoutPaused(): boolean {
   return CHECKOUT_PAUSED;
@@ -222,7 +235,7 @@ export function requireMoolre(): MoolreConfig {
   const config = moolreConfig();
   if (!config) {
     throw new Error(
-      "Moolre is not configured — set MOOLRE_API_URL, MOOLRE_API_USER, MOOLRE_API_PUBKEY, " +
+      "Moolre is not configured — set MOOLRE_API_URL, MOOLRE_API_USER, MOOLRE_API_KEY, " +
         "MOOLRE_ACCOUNT_NUMBER and MOOLRE_MERCHANT_EMAIL (sandbox values in .env.local).",
     );
   }

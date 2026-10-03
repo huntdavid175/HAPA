@@ -16,7 +16,7 @@ const env = (name: string) => process.env[name]?.trim() || undefined;
 
 const apiUrl = env("MOOLRE_API_URL");
 const user = env("MOOLRE_API_USER");
-const pubKey = env("MOOLRE_API_PUBKEY");
+const apiKey = env("MOOLRE_API_KEY");
 const accountNumber = env("MOOLRE_ACCOUNT_NUMBER");
 const merchantEmail = env("MOOLRE_MERCHANT_EMAIL");
 const site = env("NEXT_PUBLIC_SITE_URL") ?? "http://localhost:3000";
@@ -26,7 +26,7 @@ async function call(path: string, body: Record<string, unknown>) {
     method: "POST",
     headers: {
       "X-API-USER": user!,
-      "X-API-PUBKEY": pubKey!,
+      "X-API-KEY": apiKey!,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
@@ -45,7 +45,7 @@ async function main() {
   const missing = Object.entries({
     MOOLRE_API_URL: apiUrl,
     MOOLRE_API_USER: user,
-    MOOLRE_API_PUBKEY: pubKey,
+    MOOLRE_API_KEY: apiKey,
     MOOLRE_ACCOUNT_NUMBER: accountNumber,
     MOOLRE_MERCHANT_EMAIL: merchantEmail,
   })

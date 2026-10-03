@@ -5,7 +5,7 @@ import { clientEnv, requireMoolre } from "@/lib/env";
 /**
  * Moolre payment links, Ghana.
  *
- * The buyer pays on Moolre's hosted Web POS page (mobile money or card); we send them
+ * The buyer pays on Moolre's hosted Web POS page (mobile money: MTN, Telecel, AT); we send them
  * there with a link created per order, and Moolre calls `/api/webhooks/moolre` when the
  * payment lands. Contract: docs.moolre.com/api/payments/links, …/status, …/webhook (the
  * plain-text copies are under docs.moolre.com/ai/live/).
@@ -45,7 +45,7 @@ async function call<T>(path: string, body: Record<string, unknown>): Promise<Env
     method: "POST",
     headers: {
       "X-API-USER": config.user,
-      "X-API-PUBKEY": config.pubKey,
+      "X-API-KEY": config.apiKey,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),

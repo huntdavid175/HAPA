@@ -76,14 +76,23 @@ Read `plan.md` for where the build is.
   check and then redirects paying buyers to their own machine. It shipped that way once.
   To confirm production's value, read a recent `message_deliveries.body`: its link is
   built from it.
-- Store `MOOLRE_API_PUBKEY` and `RESEND_API_KEY` as Vercel **Sensitive** variables, not
+- Store `MOOLRE_API_KEY` and `RESEND_API_KEY` as Vercel **Sensitive** variables, not
   plain ones — plain values stay readable in the dashboard and via `vercel env pull`.
 - **Checkout is on only when all five `MOOLRE_*` payment values are set** (`MOOLRE_API_URL`,
-  `_API_USER`, `_API_PUBKEY`, `_ACCOUNT_NUMBER`, `_MERCHANT_EMAIL`; `paymentsEnabled()`).
+  `_API_USER`, `_API_KEY`, `_ACCOUNT_NUMBER`, `_MERCHANT_EMAIL`; `paymentsEnabled()`).
+  `MOOLRE_API_KEY` is the **private** key, sent as `X-API-KEY`: the docs' `X-API-PUBKEY`
+  expects a different signed token and fails with the private key (a PHP warning page on
+  sandbox, `AIN01` on live). For a reference it has never seen, the status endpoint
+  answers `status: 1`, `code: SS07`, `txstatus: 3` — `status` is not "found"; only
+  `txstatus: 1` is paid.
   A deployment missing one shows "payments not live", it does not error.
   `MOOLRE_API_URL` picks the environment: `https://sandbox.moolre.com` or
   `https://api.moolre.com` — sandbox keys do not work against live, nor the reverse.
   `npm run check:moolre` proves the values in `.env.local` are accepted.
+- **Production never takes sandbox payments**: with `VERCEL_ENV=production` and a sandbox
+  `MOOLRE_API_URL`, `moolreConfig()` returns null (no Pay button, an error in the logs).
+  A sandbox "payment" is a test code and a "Success" button that the status endpoint
+  reports as paid — in production that is free tickets.
 - Server env is validated at boot (`lib/env.ts`), and an **empty** value fails it:
   `RESEND_API_KEY=` is not "unset". Comment a variable out rather than blank it.
 - `main` deploys to production on Vercel. Merging is a release.

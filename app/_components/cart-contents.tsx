@@ -202,7 +202,7 @@ export function CartContents({
 
       {!checkoutOpen ? (
         <p className="border-l-2 border-border pl-4 text-sm text-muted-foreground">
-          Card and mobile money payments are being switched on. Once they are live you
+          Mobile money payments are being switched on. Once they are live you
           will pay here and get your tickets by email straight away.
         </p>
       ) : (
@@ -239,7 +239,7 @@ export function CartContents({
           />
 
           <p className="text-center text-xs text-muted-foreground">
-            Pay with mobile money or card. Your{" "}
+            Pay with MTN, Telecel or AT mobile money. Your{" "}
             {ticketCount === 1 ? "ticket" : "tickets"} will be held for 10 minutes while
             you pay.
           </p>
